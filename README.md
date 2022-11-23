@@ -37,7 +37,7 @@
 ]
 ```
   
-**3. Install Tampermonkey extension for your web-browser**
+**3. Install the Tampermonkey extension for your web-browser**
 - In Tampermonkey, go to Settings, Advanced, Downloads BETA, Whitelisted File Extensions
   - Add .crawljob to the end on a new line
   
@@ -50,11 +50,11 @@
 **ADD CUSSTOM SUPPORT FOR SITES**
 - To add your custom support for sites, you need to @include (using regex) or @match it (top of the script where the other sites are)
 - Then you need set the proper global (Per site) variables for it in the set_per_site_vars() function
-  - The scirpt / names describe what each of those variables is for and whether it is manditroy or optional
+  - The scirpt describes what each of those variables is for and whether it is manditroy or optional
   
 ---
   
 **EXTRA INFO**
-- If you are using a Chromium based browser, you may want to switch to something like Firefox.
+- If you are using a Chromium-based browser, you may want to switch to Firefox.
   - Chromium will be implementing Manifest V3 soon which is very likely to take away functionality from the Tampermonkey extension
   - That would likely make the custom script used here useless
