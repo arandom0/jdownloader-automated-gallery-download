@@ -18,9 +18,11 @@
 - Condition Name:
   - rename based on pkg name + #custnum
 - If the following conditions match...
-  - Sourceurl(s) contains: *#custnum=*
+  - Sourceurl(s) contains:
+    - \*#custnum=\*
 - ... then set
-  - Filename: <jd:packagename> - <jd:source:2>.<jd:orgfiletype>
+  - Filename:
+    - <jd:packagename> - <jd:source:2>.<jd:orgfiletype>
   
 **2. Install the Jdownloader Folder Watch extension**
 - In Jdownloader, go to Settings, Extension Modules, Folder Watch, Install Now
