@@ -1,0 +1,1 @@
+# jdownloader-automated-gallery-download
