@@ -22,7 +22,7 @@
     - \*#custnum=\*
 - ... then set
   - Filename:
-    - <jd:packagename> - <jd:source:2>.<jd:orgfiletype>
+    - \<jd:packagename\> - \<jd:source:2\>.\<jd:orgfiletype\>
   
 **2. Install the Jdownloader Folder Watch extension**
 - In Jdownloader, go to Settings, Extension Modules, Folder Watch, Install Now
