@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MULTI: Copy img links from galleries
 // @version      0.1
-// @description  To add a new site, @include it below with regex or @match if you don't know regex. Then add the required info in the set_per_site_vars() function
+// @description  To add a new site, @include it below with regex or @match if you don't know regex (ex. https://www.google.com/*). Then add the required info in the set_per_site_vars() function
 // @author       You
 // @include      /^http.*:\/\/.*urlgalleries\.net\/.+$/
 // @include      /^http.*:\/\/(?:www\.)?nudecollect\.com\/content\/.+$/
@@ -22,6 +22,8 @@
 // @include      /^http.*:\/\/(?:www\.)?hothag\.com\/galleries\/.+$/
 // @include      /^http.*:\/\/(?:www\.)?imx\.to\/g\/.+$/
 // @include      /^http.*:\/\/(?:www\.)?eroboom\..{2,3}\/photoset\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?nudemodels\.cc\/gallery\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?x3vid\.com\/gallery.+$/
 // @match        *://girlsreleased.com/*
 // @grant        GM_setClipboard
 // @grant        GM_download
@@ -136,6 +138,15 @@
         else if (urlObj.host.includes("imx.to")) {
             GALLERY_IMGS_SELECTOR = `#content .imgtooltip`;
         }
+        else if (urlObj.host.includes("nudemodels.cc")) {
+            GALLERY_IMGS_SELECTOR = `#album img`;
+            COPY_GALLERY_IMGS_SRCS = true;
+        }
+        else if (urlObj.host.includes("x3vid.com")) {
+            GALLERY_IMGS_SELECTOR = `#my-posts a figure img`;
+            PAGINATION_LINKS_SELECTOR = `.pagination a`;
+            FULL_SIZE_IMG_SELECTOR = `img[class="slide-img"]`;
+        }
 
         // Validate
         if (COPY_GALLERY_IMGS_SRCS && FULL_SIZE_IMG_SELECTOR) {
@@ -154,10 +165,16 @@
         let styleHtml =
             `<style id="generalStyle">
                 #sideBtn {position: fixed; top: 50%; display: block; font-size: 1.2rem; padding: 5px; background: green; border: 3px solid red; cursor: pointer; z-index: 99999999;}
+
                 #custMsg {position:fixed; top:0; left: 50%; font-size:1rem; padding:10px; width:max-content; z-index: 99999999;}
                 .genericCustMsg {background:blue; color:white;}
                 .successCustMsg {background:green; color:white;}
                 .errorCustMsg {background:red; color:white;}
+
+                #outputBlock {background:black; position:fixed; top:0; left:0; border: 2px solid; width:1000px; height: 700px; overflow: scroll;}
+                #outputBlock textarea, #outputBlock input {width:900px; border:2px solid; border-color:red; background:black;}
+                #outputBlock textarea {height:250px;}
+                #outputBlock button {font-size:1.2rem;}
             </style>`;
         document.querySelector(`html`).appendChild(html_to_node(styleHtml));
 
@@ -206,6 +223,7 @@
         save_as_crawljob_file();
         //contact_jdownloader();
         if (FULL_SIZE_IMG_SELECTOR) display_output();
+        else copyLinksToClip();
     }
 
     function reset()
@@ -295,11 +313,16 @@
                 await Promise.all(promises);
             }
 
-            promises.push(get_fullsize_link(imgElem.parentElement.href, COUNTER));
-            display_msg(`Started image ${COUNTER}`);
+            let link = get_image_link(imgElem);
+            if (link) {
+                promises.push(get_fullsize_link(link, COUNTER));
+                antiConjestionCounter += 1;
+                display_msg(`Started image ${COUNTER}`);
+                await delay(100); // wait before you add the new promise since some sites don't support going too fast
+            } else {
+                ERRORS.push(`NO IMG LINK ELEMENT\n${imgElem.src}\n`);
+            }
             COUNTER += 1;
-            antiConjestionCounter += 1;
-            await delay(100); // wait before you add the new promise since some sites don't support going too fast
         }
 
         display_msg(`Waiting for images on page ${pageNumber} to fetch`);
@@ -324,11 +347,9 @@
 
         for (let imgElem of allGalleryImgElems)
         {
-            try {
-                let link = COPY_GALLERY_IMGS_SRCS ? imgElem.src : imgElem.parentElement.href;
-                OUTPUT.push(link + "#custnum=" + COUNTER);
-            }
-            catch(err) {ERRORS.push(`NO IMG LINK ELEMENT\n${imgElem.src}\n`);}
+            let link = get_image_link(imgElem);
+            if (link) OUTPUT.push(link + "#custnum=" + COUNTER);
+            else ERRORS.push(`NO IMG LINK ELEMENT\n${imgElem.src}\n`);
             COUNTER++;
         }
     }
@@ -347,6 +368,27 @@
         return null;
     }
 
+    function get_image_link(imgElem)
+    {
+        if (COPY_GALLERY_IMGS_SRCS) return imgElem.src;
+
+        let movingElem = imgElem;
+        let attempts = 0;
+        let maxParents = 2;
+
+        try {
+            while (attempts < maxParents) {
+                movingElem = movingElem.parentElement;
+                if (movingElem.nodeName == "A") return movingElem.href;
+                attempts += 1;
+            }
+        }
+        catch(err) {
+            return false;
+        }
+        return false;
+    }
+
 
     /****************************************************/
     // OUTPUT
@@ -363,8 +405,7 @@
         document.querySelector("body").appendChild(html_to_node(frameHtml));
 
         try {document.querySelector("#jdForm").remove()} catch(e) {}
-        // since the jdownloader site doesn't allow links, set the form action below to 'http{colon,slash.slah}127.0.0.1:9666/flash/add'
-        let formHtml = `<form id='jdForm' action='' method='POST' target='jdownloader-frame'><input type="hidden" name="source" value="tampermonkey"/><input type="hidden" name="package" value="${SET_NAME}"/><input id="jdUrlsInput" type="hidden" name="urls" value="${OUTPUT.join("<br>")}"/></form>`;
+        let formHtml = `<form id='jdForm' action='http://127.0.0.1:9666/flash/add' method='POST' target='jdownloader-frame'><input type="hidden" name="source" value="tampermonkey"/><input type="hidden" name="package" value="${SET_NAME}"/><input id="jdUrlsInput" type="hidden" name="urls" value="${OUTPUT.join("<br>")}"/></form>`;
         document.querySelector("body").appendChild(html_to_node(formHtml));
 
         let formElem = document.querySelector("#jdForm");
@@ -413,16 +454,7 @@
                 <p><textarea id="err" readonly></textarea></p>
             </div>`;
 
-        let styleHtml =
-            `<style id="outputStyle">
-                #outputBlock {background:black; position:fixed; top:0; left:0; border: 2px solid; width:1000px; height: 700px; overflow: scroll;}
-                textarea, input {width:900px; border:2px solid; border-color:red; background:black;}
-                textarea {height:250px;}
-                button {font-size:1.2rem;}
-            </style>`;
-
         document.querySelector("html").appendChild(html_to_node(html));
-        document.querySelector("html").appendChild(html_to_node(styleHtml));
 
         document.querySelector("#setname").value = SET_NAME;
         document.querySelector("#out").value = OUTPUT.join("\n");
