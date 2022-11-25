@@ -55,6 +55,10 @@
 ---
   
 **EXTRA INFO**
+- When downloading exclusively photos like this, you can speed up the process by unticking:
+  - Jdownloader, Settings, Advanced Settings, Linkcollector: Do Link Check
+  - This will prevent checking the availability of stuff. Don't forget to turn it back on though.
+  - It also has the potential not to include the file extension with a few image hosts.
 - If you are using a Chromium-based browser, you may want to switch to Firefox.
   - Chromium will be implementing Manifest V3 soon which is very likely to take away functionality from the Tampermonkey extension
   - That would likely make the custom script used here useless
