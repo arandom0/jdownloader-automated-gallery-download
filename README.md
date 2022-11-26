@@ -55,6 +55,9 @@
 ---
   
 **EXTRA INFO**
+- You can change the output behavior of the script
+  - Edit the bottom of the run() function
+  - If you sroll down to the OUTPUT section there are various options to choose from, including contacting jdownloader directly
 - When downloading exclusively photos like this, you can speed up the process by unticking:
   - Jdownloader, Settings, Advanced Settings, Linkcollector: Do Link Check
   - This will prevent checking the availability of stuff. Don't forget to turn it back on though.
