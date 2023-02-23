@@ -1,0 +1,88 @@
+// ==UserScript==
+// @name         vipergirls - behavior - 'condense' posts
+// @namespace    http://tampermonkey.net/
+// @version      0.1
+// @description  try to take over the world!
+// @author       You
+// @match        https://vipergirls.to/threads/*
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=vipergirls.to
+// @grant        none
+// @run-at       document-start
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    run();
+    async function run()
+    {
+        let allPostElems;
+
+        while(true) {
+            allPostElems = [...document.querySelectorAll(`li[id^="post_"]`)];
+            if (allPostElems.length >= 30) break;
+            await delay(50);
+        }
+
+        document.querySelector("html").appendChild(html_to_node(`<style>blockquote.postcontent {display: flex; flex-flow: wrap;}</style>`));
+        window.stop(); // this stops everything from loading, the only thing that can make the page load stuff again is if html is changed (only that html)
+
+        for (let postElem of allPostElems) {
+
+            try {postElem.querySelector(".posthead").appendChild(html_to_node(`<button class="revealPostBtn" style="position: absolute;">REVEAL PHOTOS</button>`))}
+            catch(err) {continue}
+
+            let allImgElemsInPost = [...postElem.querySelectorAll(`.postbody .content img`)];
+            for (let imgElem of allImgElemsInPost) {
+                let linkElem = imgElem.parentElement;
+                if (linkElem.nodeName != "A") continue;
+                linkElem.innerHTML = mark_imgs_deactivated(linkElem.innerHTML);
+                linkElem.innerHTML += "[]";
+            }
+
+            // show the first 3 images from every post
+            let allLinkElemsInPost = [...postElem.querySelectorAll(`.postbody .content a`)];
+            for (let linkElem of allLinkElemsInPost.splice(0,3)) {
+                linkElem.innerHTML = activate_imgs(linkElem.innerHTML);
+            }
+        }
+
+        document.querySelector("body").addEventListener("click", click_handler);
+    }
+
+    function click_handler(event)
+    {
+        let targetClass = event.target.getAttribute("class");
+        if (!targetClass || targetClass != "revealPostBtn") return;
+
+        let revealBtnElem = event.target;
+        let postElem = revealBtnElem.closest(`li[id^="post_"]`); // closest(cssQuery) returns the first parent element matching the selector, null if no match
+
+        let postContentElem = postElem.querySelector(`.postbody .content`);
+        postContentElem.innerHTML = activate_imgs(postContentElem.innerHTML);
+
+    }
+
+    // this makes is so that I can change the html again after that and have the images in the html string provided load
+    function mark_imgs_deactivated(str) {
+        //return "<noscript>" + str + "</noscript>";
+        return str.replaceAll(/<img src=/g, "<img srcold=");
+    }
+
+    function activate_imgs(str) {
+        //return str.replaceAll(/<(?:\/)?noscript>/g, "");
+        return str.replaceAll(/<img srcold=/g, "<img src=");
+    }
+
+    function html_to_node(code)
+    {
+        let tempWrapper = document.createElement("div");
+        tempWrapper.innerHTML = code;
+        if (tempWrapper.childElementCount == 1) tempWrapper = tempWrapper.firstChild;
+        return tempWrapper;
+    }
+
+    function delay(durationMs) {
+        return new Promise(resolve => setTimeout(resolve, durationMs));
+    }
+})();
