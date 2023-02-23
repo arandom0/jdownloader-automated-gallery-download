@@ -1,15 +1,17 @@
 // ==UserScript==
-// @name         MULTI: Copy img links from galleries
+// @name         MULTI: behavior - fetch img links from galleries
 // @version      0.1
 // @description  To add a new site, @include it below with regex or @match if you don't know regex (ex. https://www.google.com/*). Then add the required info in the set_per_site_vars() function
 // @author       You
 // @include      /^http.*:\/\/.*urlgalleries\.net\/.+$/
 // @include      /^http.*:\/\/(?:www\.)?nudecollect\.com\/content\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?(?:vip\.)?hqnp\.org\/content\/.+$/
 // @include      /^http.*:\/\/(?:www\.)?imagefap\.com\/pictures\/.+$/
 // @include      /^http.*:\/\/(?:www\.)?kitty-kats\.net\/threads\/.+$/
 // @include      /^http.*:\/\/(?:www\.)?eropics\.to\/.+$/
 // @include      /^http.*:\/\/(?:www\.)?vipergirls\.to\/threads\/.+$/
 // @include      /^http.*:\/\/(?:www\.)?eroticity\.net\/threads\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?porn-w\.org\/topic.+$/
 // @include      /^http.*:\/\/(?:www\.)?erohd\.net\/.+$/
 // @include      /^http.*:\/\/(?:www\.)?greekfoot\.com\/.+$/
 // @include      /^http.*:\/\/(?:www\.)?hotgirlspics\.net\/.+$/
@@ -24,7 +26,18 @@
 // @include      /^http.*:\/\/(?:www\.)?eroboom\..{2,3}\/photoset\/.+$/
 // @include      /^http.*:\/\/(?:www\.)?nudemodels\.cc\/gallery\/.+$/
 // @include      /^http.*:\/\/(?:www\.)?x3vid\.com\/gallery.+$/
+// @include      /^http.*:\/\/(?:www\.)?teenporngallery\.net\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?celebmasta\.com\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?thefappeningblog\.com\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?fappeningbook\.com\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?nudemodels\.cc\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?gjbisai\.info\/index\.php\/artdetail-.+$/
+// @match        *://onpornpics.com/*
+// @match        *://pornpics.pictures/*
+// @match        *://fapodrom.com/*
 // @match        *://girlsreleased.com/*
+// @match        *://babe.today/pics/*
+// @match        *://glam0ur.net/*
 // @grant        GM_setClipboard
 // @grant        GM_download
 // ==/UserScript==
@@ -36,14 +49,13 @@
     // GLOBALS
     /****************************************************/
 
+    let URL_OBJ = new URL(window.location.href);
+
     //---------------------------------------------------
     // Working
 
     let SET_NAME = "";
     let COUNTER = 1;
-
-    //---------------------------------------------------
-    // Output
 
     let OUTPUT = [];
     let ERRORS = [];
@@ -59,6 +71,8 @@
     let FULL_SIZE_IMG_SELECTOR = ""; // setting this essentially means the script will open all the gallery img links and retrieve the full-size image link (must be on the same site)
     let PAGINATION_LINKS_SELECTOR = ""; // setting this tells the script you're dealing with a multi-page gallery. It gets all page links and loops to see if one called "next" exists
     let POST_WRAPPER_SELECTOR = ""; // setting this tells the script it needs the user to select a post. The selector is used to verify that it was clicked within post.
+
+    let SHOW_OUTPUT = false; // if you want to see the links output that were saved in the crawljob
 
     /****************************************************/
     // START
@@ -78,75 +92,118 @@
 
     function set_per_site_vars()
     {
-        let urlObj = new URL(window.location.href);
-
-        if (urlObj.host.includes("urlgalleries.net")) {
-            GALLERY_IMGS_SELECTOR = `img[class="gallery"]`;
-            PAGINATION_LINKS_SELECTOR = `div[style="font-weight:normal;width:480px;"] a`;
+        if (URL_OBJ.host.includes("urlgalleries.net")) {
+            GALLERY_IMGS_SELECTOR = `img[class="gallery-thumb"]`;
+            FULL_SIZE_IMG_SELECTOR = `script`;
         }
-        else if (urlObj.host.includes("nudecollect.com")) {
+        else if (URL_OBJ.host.includes("nudecollect.com") || URL_OBJ.host.includes("hqnp.org")) {
             GALLERY_IMGS_SELECTOR = `.image img`;
             FULL_SIZE_IMG_SELECTOR = `.ncimage img`;
             PAGINATION_LINKS_SELECTOR = `.imgpagebar a`;
         }
-        else if (urlObj.host.includes("imagefap.com")) {
-            GALLERY_IMGS_SELECTOR = `#gallery td img:not([src*="ajax-loader.gif"])`;
-            PAGINATION_LINKS_SELECTOR = `a[class^="link3"]`;
+        else if (URL_OBJ.host.includes("imagefap.com")) {
+            GALLERY_IMGS_SELECTOR = "body a img";
+            // I have my other scripts which changes the layout take care of the pages and change the selector
+            //ALLERY_IMGS_SELECTOR = `#gallery td img:not([src*="ajax-loader.gif"])`;
+            //PAGINATION_LINKS_SELECTOR = `a[class^="link3"]`;
             FULL_SIZE_IMG_SELECTOR = `#mainPhoto`;
         }
-        else if (urlObj.host.includes("kitty-kats.net") || urlObj.host.includes("indexxx.to")) {
+        else if (URL_OBJ.host.includes("kitty-kats.net") || URL_OBJ.host.includes("indexxx.to")) {
             GALLERY_IMGS_SELECTOR = ".message-userContent img";
         }
-        else if (urlObj.host.includes("eropics.to")) {
+        else if (URL_OBJ.host.includes("eropics.to")) {
             GALLERY_IMGS_SELECTOR = ".entry-content img";
         }
-        else if (urlObj.host.includes("erohd.net")) {
+        else if (URL_OBJ.host.includes("erohd.net")) {
             GALLERY_IMGS_SELECTOR = ".sigFreeImg";
         }
-        else if (urlObj.host.includes("vipergirls.to") || urlObj.host.includes("eroticity.net") || urlObj.host.includes("porncoven.com")) {
+        else if (URL_OBJ.host.includes("vipergirls.to") || URL_OBJ.host.includes("eroticity.net") || URL_OBJ.host.includes("porncoven.com")) {
             GALLERY_IMGS_SELECTOR = "img";
             POST_WRAPPER_SELECTOR = `div[id^="post_message_"]`;
         }
-        else if (urlObj.host.includes("greekfoot.com")) {
+        else if (URL_OBJ.host.includes("porn-w.org")) {
+            GALLERY_IMGS_SELECTOR = "img";
+            POST_WRAPPER_SELECTOR = `.message-body`;
+        }
+        else if (URL_OBJ.host.includes("greekfoot.com")) {
             GALLERY_IMGS_SELECTOR = "img";
             POST_WRAPPER_SELECTOR = `div[id^="msg_"], div[class="list_posts"]`;
         }
-        else if (urlObj.host.includes("hotgirlspics.net")) {
+        else if (URL_OBJ.host.includes("hotgirlspics.net")) {
             GALLERY_IMGS_SELECTOR = `.entry-content img:not([loading]):not([title])`;
         }
-        else if (urlObj.host.includes("pinkfineart.com")) {
+        else if (URL_OBJ.host.includes("pinkfineart.com")) {
             GALLERY_IMGS_SELECTOR = `a[id^="pic"] img`;
         }
-        else if (urlObj.host.includes("adultphotosets.best")) {
+        else if (URL_OBJ.host.includes("adultphotosets.best")) {
             GALLERY_IMGS_SELECTOR = `article[class="box story fullstory"] img`;
         }
-        else if (urlObj.host.includes("girlsreleased.com")) {
+        else if (URL_OBJ.host.includes("girlsreleased.com")) {
             GALLERY_IMGS_SELECTOR = `#set_list .setthumbs img`;
         }
-        else if (urlObj.host.includes("thenude.com")) {
+        else if (URL_OBJ.host.includes("thenude.com")) {
             GALLERY_IMGS_SELECTOR = `#lightgallery .gallery-thumb`;
         }
-        else if (urlObj.host.includes("photos18.com")) {
+        else if (URL_OBJ.host.includes("photos18.com")) {
             GALLERY_IMGS_SELECTOR = `#content .imgHolder img`;
         }
-        else if (urlObj.host.includes("eroboom")) {
+        else if (URL_OBJ.host.includes("eroboom")) {
             GALLERY_IMGS_SELECTOR = `#jc img`;
         }
-        else if (urlObj.host.includes("hothag.com")) {
+        else if (URL_OBJ.host.includes("hothag.com")) {
             GALLERY_IMGS_SELECTOR = `#gal_blk a img`;
         }
-        else if (urlObj.host.includes("imx.to")) {
+        else if (URL_OBJ.host.includes("imx.to")) {
             GALLERY_IMGS_SELECTOR = `#content .imgtooltip`;
         }
-        else if (urlObj.host.includes("nudemodels.cc")) {
+        else if (URL_OBJ.host.includes("nudemodels.cc")) {
             GALLERY_IMGS_SELECTOR = `#album img`;
             COPY_GALLERY_IMGS_SRCS = true;
         }
-        else if (urlObj.host.includes("x3vid.com")) {
+        else if (URL_OBJ.host.includes("x3vid.com")) {
             GALLERY_IMGS_SELECTOR = `#my-posts a figure img`;
             PAGINATION_LINKS_SELECTOR = `.pagination a`;
             FULL_SIZE_IMG_SELECTOR = `img[class="slide-img"]`;
         }
+        else if (URL_OBJ.host.includes("teenporngallery.net")) {
+            GALLERY_IMGS_SELECTOR = `td a img:not([class]):not([src$=".gif"])`;
+        }
+        else if (URL_OBJ.host.includes("celebmasta.com")) {
+            GALLERY_IMGS_SELECTOR = `.entry-content a img`;
+            COPY_GALLERY_IMGS_SRCS = true;
+        }
+        else if (URL_OBJ.host.includes("thefappeningblog.com")) {
+            GALLERY_IMGS_SELECTOR = `#content a img`;
+        }
+        else if (URL_OBJ.host.includes("fappeningbook.com")) {
+            GALLERY_IMGS_SELECTOR = `.my-gallery a[href^="https://fappeningbook"] img`;
+            FULL_SIZE_IMG_SELECTOR = `.big-photo-dv a img`;
+            PAGINATION_LINKS_SELECTOR = `.pages-dv a`;
+        }
+        else if (URL_OBJ.host.includes("nudemodels.cc")) {
+            GALLERY_IMGS_SELECTOR = `.container .col-md-7 img[width="auto"]`;
+        }
+        else if (URL_OBJ.host.includes("gjbisai.info")) {
+            GALLERY_IMGS_SELECTOR = `.video-holder .embed-responsive img`;
+            COPY_GALLERY_IMGS_SRCS = true;
+        }
+        else if (URL_OBJ.host.includes("onpornpics.com")) {
+            GALLERY_IMGS_SELECTOR = `.bikoh-gallery img`;
+        }
+        else if (URL_OBJ.host.includes("pornpics.pictures")) {
+            GALLERY_IMGS_SELECTOR = `.pix li a[href^="/media"] img`;
+        }
+        else if (URL_OBJ.host.includes("fapodrom.com")) {
+            GALLERY_IMGS_SELECTOR = `.demo-gallery img`;
+        }
+        else if (URL_OBJ.host.includes("babe.today")) {
+            GALLERY_IMGS_SELECTOR = `.jpeg.round > a > img`;
+        }
+        else if (URL_OBJ.host.includes("glam0ur.net")) {
+            GALLERY_IMGS_SELECTOR = "img";
+            POST_WRAPPER_SELECTOR = `div[id^="post_message_"]`;
+        }
+
 
         // Validate
         if (COPY_GALLERY_IMGS_SRCS && FULL_SIZE_IMG_SELECTOR) {
@@ -193,10 +250,7 @@
         reset();
 
         SET_NAME = get_set_name_user_input();
-        if (!SET_NAME) {
-            alert("Can't have an empty set name");
-            return;
-        }
+        if (!SET_NAME) return;
 
         let pageLink = get_first_page_url();
         let pageNumber = 1;
@@ -221,9 +275,7 @@
 
         display_msg(`Finished getting links.`);
         save_as_crawljob_file();
-        //contact_jdownloader();
-        if (FULL_SIZE_IMG_SELECTOR) display_output();
-        else copyLinksToClip();
+        if (FULL_SIZE_IMG_SELECTOR || SHOW_OUTPUT) display_output();
     }
 
     function reset()
@@ -239,6 +291,11 @@
 
     function get_set_name_user_input()
     {
+        if (URL_OBJ.host.includes("nudecollect.com")) {
+            let setTitle = document.querySelector(".navbar2").innerText;
+            if (/^neverseen\d{4}/i.test(setTitle)) return setTitle.split(" ")[0];
+            if (/^TeenStarsMagazine \d{2,4}$/i.test(setTitle)) return setTitle.split(" ").join("_");
+        }
         return prompt("ENTER NAME OF SET:").trim();
     }
 
@@ -333,7 +390,15 @@
             try {
                 let singleImgPageDom = await fetch_html_data(fullSizeImgPageUrl, null, FULL_SIZE_IMG_SELECTOR);
                 let fullSizeImgElem = singleImgPageDom.querySelector(FULL_SIZE_IMG_SELECTOR);
-                OUTPUT.push(fullSizeImgElem.src + "#custnum=" + counterAtTheTime);
+
+                let fullSizeImgLink;
+                if (URL_OBJ.host.includes("urlgalleries.net")) {
+                    fullSizeImgLink = fullSizeImgElem.innerText.split("=")[1].split('"').join("").trim()
+                } else {
+                    fullSizeImgLink = fullSizeImgElem.src;
+                }
+
+                OUTPUT.push(fullSizeImgLink + "#custnum=" + counterAtTheTime);
             }
             catch(err) {
                 ERRORS.push(`FAILED TO FETCH FULL SIZE IMAGE LINK:\n${fullSizeImgPageUrl}\n`);
@@ -421,6 +486,7 @@
             [
                 {
                     //forcedStart: "TRUE",
+                    //autoConfirm: "TRUE",
                     text: OUTPUT.join("<br>"),
                     packageName: SET_NAME
                 }
