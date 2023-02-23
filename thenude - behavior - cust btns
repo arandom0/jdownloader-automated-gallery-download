@@ -1,0 +1,146 @@
+// ==UserScript==
+// @name         thenude - behavior - cust btns
+// @namespace    http://tampermonkey.net/
+// @version      0.1
+// @description  try to take over the world!
+// @author       You
+// @include      /^http.*:\/\/(?:www\.)?thenude\.com\/.+$/
+// @icon         https://www.google.com/s2/favicons?domain=thenude.com
+// @grant        GM_setClipboard
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    // For the NP button to work, you need to register at https://hqnp.org/member.php?action=register and login
+    // It's a very useful site
+
+    let SET_SELECTOR = `#covers div[data-cover-id]`;
+    let ALL_SET_ELEMS = $$(SET_SELECTOR);
+
+    init();
+    function init()
+    {
+        if (ALL_SET_ELEMS.length == 0) return;
+
+        let styleHtml =
+            `<style>
+                .custLink, .custCopyBtn {display: inline-block; padding: 5px; margin-bottom: 6px; font-weight: bold; text-transform: uppercase; border: 1px solid; border-color: rgb(196, 152, 107);}
+                .custLink {background: #132617;}
+                .custCopyBtn {background: #53030f;}
+                .custTextBlock {border: 2px solid;}
+            </style`;
+        $("html").appendChild(htmlToNode(styleHtml));
+
+        $$(`.pagination li a`).forEach(e => e.removeAttribute("onclick")); // this way, when you click on a page, the site reloads
+
+        $("body").addEventListener("click", click_handler);
+        add_btns();
+    }
+
+    function click_handler(event)
+    {
+        let elem = event.target;
+        if (elem.classList.contains("custCopyBtn")) GM_setClipboard(elem.getAttribute("texttocopy"), "text");
+    }
+
+    /* ########################################################### */
+
+    function add_btns()
+    {
+        for (let setElem of ALL_SET_ELEMS)
+        {
+            // removes the annoying thing when a set has been "deleted'
+            try{setElem.querySelector(".withdrawn-txt").remove()} catch(err) {}
+
+            let setInfoObj = getSetInfoObj(setElem);
+
+            let modelSet = `${setInfoObj.modelAs} - ${setInfoObj.setName}`;
+            let studioModelSet = `${setInfoObj.studio} ${modelSet}`;
+            let studioModelSetYear = `${studioModelSet} ${setInfoObj.year}`;
+            let studioModelSetYearQty = `${studioModelSetYear} x${setInfoObj.numImgs}`;
+
+            let bingSearchHref = `https://www.bing.com/search?q=${rawTextToUrlQueryText(studioModelSetYearQty)}`;
+            //let gibiruSearchHref = `https://gibiru.com/results.html?q=${rawTextToUrlQueryText(studioModelSetYear)}`;
+            let googleSearchHref = `https://www.google.ca/search?q=${rawTextToUrlQueryText(studioModelSetYearQty)}`;
+            let yandexSearchHref = `https://yandex.com/search/?text=${rawTextToUrlQueryText(studioModelSetYear)}`;
+            //let nudeCollectSearchHref = `https://nudecollect.com/websearch/${rawTextToStandardUrlText(modelSet)}/index.html`;
+            let hqnpSearchHref = `https://vip.hqnp.org/search/${rawTextToStandardUrlText(modelSet)}/index.html`;
+            let kittyKatsSearchHref = `https://kitty-kats.net/search/?q=${rawTextToUrlQueryText(modelSet)}&c[title_only]=1&o=date`;
+            let viperGirlsSearchHref = `https://vipergirls.to/forum.php#searchtext=${rawTextToUrlQueryText(modelSet, "%20")}`;
+
+
+            // <p class="custTextBlock">${studioModelSetYearQty}</p>
+            let htmlToAppend =
+                `<a class="custLink" href="${bingSearchHref}" target="_blank">B</a>
+                <a class="custLink" href="${googleSearchHref}" target="_blank">G</a>
+                <a class="custLink" href="${yandexSearchHref}" target="_blank">Y</a>
+                <a class="custLink" href="${hqnpSearchHref}" target="_blank">Np</a>
+                <a class="custLink" href="${kittyKatsSearchHref}" target="_blank">Kk</a>
+                <a class="custLink" href="${viperGirlsSearchHref}" target="_blank">Vg</a>
+                <a class="custLink" href="${viperGirlsSearchHref}#titlesonly" target="_blank">Vge</a>
+                <button class="custCopyBtn" texttocopy="${modelSet}">Copy model + set</button>
+                <button class="custCopyBtn" texttocopy="${studioModelSet}">Copy studio + model + set</button>`;
+
+            setElem.querySelector(`figure[class="figure gall-img"]`).appendChild(htmlToNode(htmlToAppend));
+        }
+    }
+
+    function getSetInfoObj(setElem)
+    {
+        let modelAsStr = capitalize(extractInfoFromElem($$of(setElem, ".model-name")[0], "", `^as`));
+        let setNameStr = capitalize(extractInfoFromElem($$of(setElem, ".model-name")[1], "", `(^in|"|')`));
+        let numImgsStr = extractInfoFromElem($of(setElem, ".image-amount"), "", `images`);
+        let studioStr = capitalize(extractInfoFromElem($of(setElem, ".website"), ""));
+        let yearStr = extractInfoFromElem($of(setElem, ".date"), "", `([a-zA-Z]+|[0-9]{2} |[0-9]{1} )`);
+        return {modelAs: modelAsStr, setName: setNameStr, numImgs: numImgsStr, studio: studioStr, year: yearStr};
+    }
+
+    function extractInfoFromElem(elem, altvalue, removeFromStrRegexStr)
+    {
+        if (!elem) return altvalue;
+        let fullTextValueOfElem = elem.innerText.trim();
+        if (!fullTextValueOfElem) return altvalue;
+        if (!removeFromStrRegexStr) return fullTextValueOfElem;
+        let regex = new RegExp(removeFromStrRegexStr, "g"); // this adds //g
+        let extractedText = fullTextValueOfElem.replace(regex, "").trim();
+        return extractedText;
+    }
+
+    /* ########################################################### */
+
+    function $ (cssQuery) {return document.querySelector(cssQuery)}
+    function $of (elem, cssQuery) {try {return elem.querySelector(cssQuery)} catch(err) {return null}}
+
+    function $$ (cssQuery) {return [...document.querySelectorAll(cssQuery)];}
+    function $$of (elem, cssQuery) {try {return [...elem.querySelectorAll(cssQuery)]} catch (err) {return []}}
+
+    function htmlToNode(code)
+    {
+        let tempWrapper = document.createElement("div");
+        tempWrapper.innerHTML = code;
+        if (tempWrapper.childElementCount == 1) tempWrapper = tempWrapper.firstChild;
+        return tempWrapper;
+    }
+
+    function capitalize(textStr) {return textStr.toLowerCase().replace(/(^\w|\s\w)/g, m => m.toUpperCase());}
+
+    // some sites use + for white space, others use %20
+    function rawTextToUrlQueryText(str, whiteSpaceSymbol="+")
+    {
+        str = str.split("+").join("%2B"); // first we replace some of the chars in base text that need conversion in the url text
+        str = str.split("&").join("%26");
+        str = str.split("?").join("%3F");
+        str = str.split("#").join("%23");
+        str = str.split(" ").join(whiteSpaceSymbol); // lastly, we replace the white spaces with the + sign
+        return str;
+    }
+
+    function rawTextToStandardUrlText(str)
+    {
+        str = str.split(" ").join("_");
+        str = str.split("/").join(""); // illegal char
+        str = str.split("#").join(""); // illegal char
+        return str;
+    }
+})();
