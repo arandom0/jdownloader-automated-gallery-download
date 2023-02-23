@@ -62,7 +62,7 @@
 
             let bingSearchHref = `https://www.bing.com/search?q=${rawTextToUrlQueryText(studioModelSetYearQty)}`;
             //let gibiruSearchHref = `https://gibiru.com/results.html?q=${rawTextToUrlQueryText(studioModelSetYear)}`;
-            let googleSearchHref = `https://www.google.ca/search?q=${rawTextToUrlQueryText(studioModelSetYearQty)}`;
+            let googleSearchHref = `https://www.google.com/search?q=${rawTextToUrlQueryText(studioModelSetYearQty)}`;
             let yandexSearchHref = `https://yandex.com/search/?text=${rawTextToUrlQueryText(studioModelSetYear)}`;
             //let nudeCollectSearchHref = `https://nudecollect.com/websearch/${rawTextToStandardUrlText(modelSet)}/index.html`;
             let hqnpSearchHref = `https://vip.hqnp.org/search/${rawTextToStandardUrlText(modelSet)}/index.html`;
