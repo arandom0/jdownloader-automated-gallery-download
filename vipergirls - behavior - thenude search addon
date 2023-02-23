@@ -1,0 +1,40 @@
+// ==UserScript==
+// @name         vipergirls - behavior - thenude search addon
+// @namespace    http://tampermonkey.net/
+// @version      0.1
+// @description  try to take over the world!
+// @author       You
+// @match        https://vipergirls.to/forum.php
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=vipergirls.to
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    let url = window.location.href;
+    if (!url.includes("searchtext=")) return;
+
+    let titlesOnly = false
+    let searchText = url.split("#searchtext=")[1];
+
+
+    if (url.endsWith("#titlesonly")) {
+        searchText = searchText.split("#titlesonly")[0];
+        titlesOnly = true;
+    }
+
+    searchText = urlQueryTextToRawText(searchText);
+    document.querySelector(`#navbar_search .textbox`).value = searchText
+    if (titlesOnly) document.querySelector("#cb_navsearch_titleonly").checked = true
+    document.querySelector(`#navbar_search .searchbutton[type="image"]`).click();
+
+    function urlQueryTextToRawText(str)
+    {
+        str = str.split("%2B").join("+");
+        str = str.split("%26").join("&");
+        str = str.split("%3F").join("?");
+        str = str.split("%23").join("#");
+        str = str.split("%20").join(" ");
+        return str;
+    }
+})();
