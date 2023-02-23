@@ -1,5 +1,10 @@
 # jdownloader-automated-gallery-download
 ---
+
+**UPDATE**
+- Other scripts added to make life easier
+- The main script is "MULTI: behavior - fetch img links from galleries". The others are optional. Their titles should be self-explanatory.
+- So, step-4 of the instructions is refferring to the main script. You can add the rest of them the same way.
   
 **INTRO**
   
