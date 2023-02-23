@@ -1,0 +1,35 @@
+// ==UserScript==
+// @name         imagefap - design - simple gallery
+// @namespace    http://tampermonkey.net/
+// @version      0.1
+// @description  try to take over the world!
+// @author       You
+// @include      /^http.*:\/\/(?:www\.)?imagefap\.com\/pictures\/.+$/
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=imagefap.com
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    // first make sure you view the page that contains all images without pagination
+    let url = window.location.href;
+    if (!url.includes("?view=3")) window.location.href = url.split("?")[0] + "?view=3";
+
+    let newHtml = "";
+    let allImgElems = document.querySelectorAll("#gallery img");
+
+    // base html
+    for (let imgElem of allImgElems)
+    {
+        if (imgElem.src.includes("ajax-loader")) continue;
+        newHtml += `<a href="${imgElem.parentElement.href}"><img src="${imgElem.src}"/></a>`;
+    }
+
+    newHtml +=
+        `<style>
+            body {background: #000; width: 1240px; margin: 0 auto;}
+            img {width: 300px; height: auto; display: inline-block; margin-right: 10px; margin-bottom: 10px;}
+        </style>`;
+
+    document.querySelector("body").innerHTML = newHtml;
+})();
