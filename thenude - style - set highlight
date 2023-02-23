@@ -1,0 +1,54 @@
+// ==UserScript==
+// @name         thenude - style - set highlight
+// @namespace    http://tampermonkey.net/
+// @version      0.1
+// @description  try to take over the world!
+// @author       You
+// @include      /^http.*:\/\/(?:www\.)?thenude\.com\/.+$/
+// @icon         https://www.google.com/s2/favicons?domain=thenude.com
+// @grant        GM_setClipboard
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    let SET_SELECTOR = `#covers div[data-cover-id]`;
+    let ALL_SET_ELEMS = document.querySelectorAll(SET_SELECTOR);
+
+    let STYLE_HTML =
+        `<style>
+            ${SET_SELECTOR}[highlighted] {border: 6px solid #5dff5d !important;}
+
+            /* Remove spaving between covers, make posts bigger and add df border */
+            #covers div[data-cover-id] {padding: 0px; border: 1px solid; width: 33%; font-size: 19px;}
+            /* Remove spacing at the bottom of cover caused by this */
+            #covers div[data-cover-id] .figure.gall-img {margin: 0;}
+            /* Remove padding within post */
+            #covers div[data-cover-id] .fig-wrap {padding: 0px;}
+            /* Put all the df writings under photo on "the same line", add padding and increase font size */
+            #covers div[data-cover-id] figcaption * {display: inline-block;}
+            #covers div[data-cover-id] figcaption {padding: 5px;}
+            /* Hide photographer */
+            #covers div[data-cover-id] div[class="model-name"][itemprop="author"] {display: none;}
+        </style`;
+    document.querySelector("html").appendChild(htmlToNode(STYLE_HTML));
+
+    document.querySelector("body").addEventListener("click", click_handler);
+
+    function click_handler(event)
+    {
+        let elem = event.target;
+        let activeSetWrapperElem = elem.closest(SET_SELECTOR);
+        if (!activeSetWrapperElem || activeSetWrapperElem.getAttribute("highlighted")) return;
+        for (let elem of ALL_SET_ELEMS) elem.removeAttribute("highlighted");
+        activeSetWrapperElem.setAttribute("highlighted", "");
+    }
+
+    function htmlToNode(code)
+    {
+        let tempWrapper = document.createElement("div");
+        tempWrapper.innerHTML = code;
+        if (tempWrapper.childElementCount == 1) tempWrapper = tempWrapper.firstChild;
+        return tempWrapper;
+    }
+})();
