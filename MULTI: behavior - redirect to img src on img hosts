@@ -1,0 +1,96 @@
+// ==UserScript==
+// @name         MULTI: behavior - redirect to img src on img hosts
+// @namespace    http://tampermonkey.net/
+// @version      0.1
+// @description  try to take over the world!
+// @author       You
+// @include      /^http.*:\/\/(?:www\.)?imx\.to\/i(?:mg)?.+$/
+// @include      /^http.*:\/\/(?:www\.)?acidimg\.cc\/img-.+$/
+// @include      /^http.*:\/\/(?:www\.)?turboimagehost\.com\/p\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?vipr\.im\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?pixhost\.to\/show\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?imagetwist\.com\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?imgspice\.com\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?imgbox\.com\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?imagefap\.com\/photo\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?imagevenue\.com\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?nudecollect\.com\/content\/.+\/image.+$/
+// @include      /^http.*:\/\/(?:www\.)?(?:vip\.)?hqnp\.org\/content\/.+\/image.+$/
+// @include      /^http.*:\/\/(?:www\.)?pimpandhost\.com\/image\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?fastpic\.org\/view.+$/
+// @include      /^http.*:\/\/(?:www\.)?pixroute\.com\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?imgbabes\.com\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?imgflare\.com\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?pics4you\.net\/(?!img).+$/
+// @include      /^http.*:\/\/(?:www\.)?pixxxels\.cc\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?fappic\.com\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?picturelol\.com\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?imagenpic\.com\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?imagexport\.com\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?imagenimage\.com\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?picshick\.com\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?x3vid\.com\/i.+\/.+\?source.+$/
+// @grant        none
+// @run-at       document-start
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    run();
+    async function run()
+    {
+        window.stop(); // stop page load
+        let link = window.location.href, urlObj = new URL(link);
+        let fetchMethod = "get", formData, cssSelector; // formData.append(name, value)
+
+        if (urlObj.host.includes("imx")) {fetchMethod = "post"; formData = new FormData(); formData.append(`imgContinue`, `Continue to image ... `); cssSelector = `img[class="centred"]`;}
+        else if (urlObj.host.includes("acidimg")) {fetchMethod = "post"; formData = new FormData(); formData.append(`imgContinue`, `Continue to your image`); cssSelector = `img[class="centred"]`;}
+        else if (urlObj.host.includes("turboimagehost")) cssSelector = `#imageid`;
+        else if (urlObj.host.includes("vipr")) cssSelector = `.pic.img.img-responsive`;
+        else if (urlObj.host.includes("pixhost")) cssSelector = `#image`;
+        else if (urlObj.host.includes("imagetwist")) cssSelector = `.pic.img.img-responsive`;
+        else if (urlObj.host.includes("imgspice")) cssSelector = `#imgpreview`;
+        else if (urlObj.host.includes("imgbox")) cssSelector = `#img.image-content`;
+        else if (urlObj.host.includes("imagefap")) cssSelector = `#mainPhoto`;
+        else if (urlObj.host.includes("imagevenue")) cssSelector = `a[data-toggle="full"] img`;
+        else if (urlObj.host.includes("nudecollect") || urlObj.host.includes("hqnp")) cssSelector = `.ncimage img`;
+        else if (urlObj.host.includes("pimpandhost")) cssSelector = `img[id^="img_"]`;
+        else if (urlObj.host.includes("fastpic")) cssSelector = `#imglink img[src^="http"]`;
+        else if (urlObj.host.includes("pixroute")) cssSelector = `#imgpreview`;
+        else if (urlObj.host.includes("imgbabes")) cssSelector = `#source`;
+        else if (urlObj.host.includes("imgflare")) cssSelector = `#source`;
+        else if (urlObj.host.includes("pics4you")) {fetchMethod = "post"; formData = new FormData(); formData.append("op", "view"); formData.append("id", urlObj.pathname.split("/")[1]); formData.append("pre", "1"); formData.append('next', 'Continue to image...'); cssSelector = `.pic`;}
+        else if (urlObj.host.includes("pixxxels")) cssSelector = "#main-image";
+        else if (urlObj.host.includes("fappic")) cssSelector = ".pic";
+        else if (urlObj.host.includes("picturelol")) cssSelector = ".pic";
+        else if (urlObj.host.includes("imagenpic")) cssSelector = ".pic";
+        else if (urlObj.host.includes("imagexport")) cssSelector = ".pic";
+        else if (urlObj.host.includes("imagenimage")) cssSelector = ".pic";
+        else if (urlObj.host.includes("picshick")) cssSelector = ".pic";
+        else if (urlObj.host.includes("x3vid")) cssSelector = `img[class="slide-img"]`;
+
+        let postDom, imgElem;
+        while (1==1)
+        {
+            postDom = await fetch_html_data(link, fetchMethod, formData);
+            if (postDom) {imgElem = postDom.querySelector(cssSelector);}
+            if (imgElem) {window.location.href = imgElem.src; break;}
+            await delay(100);
+        }
+    }
+
+    async function fetch_html_data(url, fetchMethod, formData)
+    {
+        try {
+            let response;
+            if (formData) response = await fetch(url, {method:fetchMethod, credentials:'include', body:formData});
+            else response = await fetch(url, {method:fetchMethod, credentials:'include'});
+            let htmlString = await response.text();
+            return (new DOMParser()).parseFromString(htmlString, "text/html");
+        }
+        catch(err) {return false;}
+    }
+
+    function delay(durationMs) {return new Promise(resolve => setTimeout(resolve, durationMs));}
+})();
