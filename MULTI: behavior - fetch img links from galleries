@@ -393,7 +393,7 @@
 
                 let fullSizeImgLink;
                 if (URL_OBJ.host.includes("urlgalleries.net")) {
-                    fullSizeImgLink = fullSizeImgElem.innerText.split("=")[1].split('"').join("").trim()
+                    fullSizeImgLink = fullSizeImgElem.innerText.split(" = ")[1].split('"').join("").trim()
                 } else {
                     fullSizeImgLink = fullSizeImgElem.src;
                 }
