@@ -13,19 +13,23 @@
 (function() {
     'use strict';
 
+    let MIN_NUM_POSTS_TO_TRIGGER = 3;
+    let POST_SELECTOR = `li[id^="post_"]:not([id*="thanks"])`;
+
     run();
     async function run()
     {
-        let allPostElems;
-
         while(true) {
-            allPostElems = [...document.querySelectorAll(`li[id^="post_"]`)];
-            if (allPostElems.length >= 30) break;
+            let result = time_to_trigger();
+            if (result == "return") return;
+            else if (result == true) break;
             await delay(50);
         }
 
         document.querySelector("html").appendChild(html_to_node(`<style>blockquote.postcontent {display: flex; flex-flow: wrap;}</style>`));
         window.stop(); // this stops everything from loading, the only thing that can make the page load stuff again is if html is changed (only that html)
+
+        let allPostElems = [...document.querySelectorAll(POST_SELECTOR)];
 
         for (let postElem of allPostElems) {
 
@@ -50,13 +54,38 @@
         document.querySelector("body").addEventListener("click", click_handler);
     }
 
+    function time_to_trigger()
+    {
+        let numToAchive;
+
+        try {
+            let pageStats = document.querySelector("#postpagestats_above").innerText;
+            let postNumFromToArr = pageStats.split("Results ")[1].split(" of")[0].split(" to ");
+            postNumFromToArr[0] = postNumFromToArr[0].split(",").join(""); // remove comas
+            postNumFromToArr[1] = postNumFromToArr[1].split(",").join(""); // remove comas
+
+            let postFrom = parseInt(postNumFromToArr[0]) - 1; // because 1 to 10 is ten posts, not nine
+            let postTo = parseInt(postNumFromToArr[1]);
+
+            numToAchive = postTo - postFrom;
+            if (numToAchive < MIN_NUM_POSTS_TO_TRIGGER) return "return";
+        }
+        catch(err) {
+            numToAchive = 15; // num of posts in full pages
+        }
+
+        let allPostElems = [...document.querySelectorAll(POST_SELECTOR)];
+        if (allPostElems.length >= numToAchive) return true;
+        else return false;
+    }
+
     function click_handler(event)
     {
         let targetClass = event.target.getAttribute("class");
         if (!targetClass || targetClass != "revealPostBtn") return;
 
         let revealBtnElem = event.target;
-        let postElem = revealBtnElem.closest(`li[id^="post_"]`); // closest(cssQuery) returns the first parent element matching the selector, null if no match
+        let postElem = revealBtnElem.closest(POST_SELECTOR); // closest(cssQuery) returns the first parent element matching the selector, null if no match
 
         let postContentElem = postElem.querySelector(`.postbody .content`);
         postContentElem.innerHTML = activate_imgs(postContentElem.innerHTML);
