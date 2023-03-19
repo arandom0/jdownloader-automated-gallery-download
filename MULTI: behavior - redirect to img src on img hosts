@@ -30,6 +30,7 @@
 // @include      /^http.*:\/\/(?:www\.)?imagenimage\.com\/.+$/
 // @include      /^http.*:\/\/(?:www\.)?picshick\.com\/.+$/
 // @include      /^http.*:\/\/(?:www\.)?x3vid\.com\/i.+\/.+\?source.+$/
+// @include      /^http.*:\/\/(?:www\.)?imagebam\.com\/image\/.+$/
 // @grant        none
 // @run-at       document-start
 // ==/UserScript==
@@ -69,6 +70,17 @@
         else if (urlObj.host.includes("imagenimage")) cssSelector = ".pic";
         else if (urlObj.host.includes("picshick")) cssSelector = ".pic";
         else if (urlObj.host.includes("x3vid")) cssSelector = `img[class="slide-img"]`;
+        else if (urlObj.host.includes("imagebam")) {
+            // site uses cookies for "Continue to image". The cookie is set to expire a few hours in the future BUT can be reset if too many requests. So we always set it below
+            // here is the code the site uses:
+                // var expires = '';
+                // var date = new Date();
+                // date.setTime(date.getTime() + (6 * 60 * 60 * 1000));
+                // expires = "; expires=" + date.toUTCString();
+                // document.cookie = "nsfw_inter=1" + expires + "; path=/";
+            document.cookie = "nsfw_inter=1; expires=Sun, 19 Mar 2050 14:23:40 GMT; path=/";
+            cssSelector = `.main-image`;
+        }
 
         let postDom, imgElem;
         while (1==1)
