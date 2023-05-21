@@ -4,7 +4,6 @@
 // @description  To add a new site, @include it below with regex or @match if you don't know regex (ex. https://www.google.com/*). Then add the required info in the set_per_site_vars() function
 // @author       You
 // @include      /^http.*:\/\/.*urlgalleries\.net\/.+$/
-// @include      /^http.*:\/\/(?:www\.)?nudecollect\.com\/content\/.+$/
 // @include      /^http.*:\/\/(?:www\.)?(?:vip\.)?hqnp\.org\/content\/.+$/
 // @include      /^http.*:\/\/(?:www\.)?imagefap\.com\/pictures\/.+$/
 // @include      /^http.*:\/\/(?:www\.)?kitty-kats\.net\/threads\/.+$/
@@ -33,11 +32,16 @@
 // @include      /^http.*:\/\/(?:www\.)?nudemodels\.cc\/.+$/
 // @include      /^http.*:\/\/(?:www\.)?gjbisai\.info\/index\.php\/artdetail-.+$/
 // @match        *://onpornpics.com/*
-// @match        *://pornpics.pictures/*
 // @match        *://fapodrom.com/*
 // @match        *://girlsreleased.com/*
 // @match        *://babe.today/pics/*
 // @match        *://glam0ur.net/*
+// @match        *://pornpics.pictures/*
+// @match        *://bondage.gallery/*
+// @match        *://yespornpics.com/*
+// @match        *://models-galleries.com/showthread.php?*
+// @match        *://hot-foto.com/*
+// @match        *://www.sishisp.top/index.php/artdetail*
 // @grant        GM_setClipboard
 // @grant        GM_download
 // ==/UserScript==
@@ -71,8 +75,7 @@
     let FULL_SIZE_IMG_SELECTOR = ""; // setting this essentially means the script will open all the gallery img links and retrieve the full-size image link (must be on the same site)
     let PAGINATION_LINKS_SELECTOR = ""; // setting this tells the script you're dealing with a multi-page gallery. It gets all page links and loops to see if one called "next" exists
     let POST_WRAPPER_SELECTOR = ""; // setting this tells the script it needs the user to select a post. The selector is used to verify that it was clicked within post.
-
-    let SHOW_OUTPUT = false; // if you want to see the links output that were saved in the crawljob
+    let DIFFERENT_METHOD = false; // setting this means a completely different method needs to be used
 
     /****************************************************/
     // START
@@ -96,10 +99,11 @@
             GALLERY_IMGS_SELECTOR = `img[class="gallery-thumb"]`;
             FULL_SIZE_IMG_SELECTOR = `script`;
         }
-        else if (URL_OBJ.host.includes("nudecollect.com") || URL_OBJ.host.includes("hqnp.org")) {
-            GALLERY_IMGS_SELECTOR = `.image img`;
-            FULL_SIZE_IMG_SELECTOR = `.ncimage img`;
-            PAGINATION_LINKS_SELECTOR = `.imgpagebar a`;
+        else if (URL_OBJ.host.includes("hqnp.org")) {
+            //GALLERY_IMGS_SELECTOR = `.image img`;
+            //FULL_SIZE_IMG_SELECTOR = `.ncimage img`;
+            //PAGINATION_LINKS_SELECTOR = `.imgpagebar a`;
+            DIFFERENT_METHOD = true;
         }
         else if (URL_OBJ.host.includes("imagefap.com")) {
             GALLERY_IMGS_SELECTOR = "body a img";
@@ -190,9 +194,6 @@
         else if (URL_OBJ.host.includes("onpornpics.com")) {
             GALLERY_IMGS_SELECTOR = `.bikoh-gallery img`;
         }
-        else if (URL_OBJ.host.includes("pornpics.pictures")) {
-            GALLERY_IMGS_SELECTOR = `.pix li a[href^="/media"] img`;
-        }
         else if (URL_OBJ.host.includes("fapodrom.com")) {
             GALLERY_IMGS_SELECTOR = `.demo-gallery img`;
         }
@@ -203,7 +204,25 @@
             GALLERY_IMGS_SELECTOR = "img";
             POST_WRAPPER_SELECTOR = `div[id^="post_message_"]`;
         }
-
+        else if (URL_OBJ.host.includes("pornpics.pictures")) {
+            GALLERY_IMGS_SELECTOR = `.pix li a[href^="/media"] img`;
+        }
+        else if (URL_OBJ.host.includes("bondage.gallery")) {
+            GALLERY_IMGS_SELECTOR = `.thumbs li a:not([href*="vip"]) img`;
+        }
+        else if (URL_OBJ.host.includes("yespornpics.com")) {
+            GALLERY_IMGS_SELECTOR = `.flex8 .jpeg a img`;
+        }
+        else if (URL_OBJ.host.includes("models-galleries.com")) {
+            GALLERY_IMGS_SELECTOR = `.post_content a img`;
+        }
+        else if (URL_OBJ.host.includes("hot-foto.com")) {
+            GALLERY_IMGS_SELECTOR = `.full-news a img`;
+        }
+        else if (URL_OBJ.host.includes("sishisp.top")) {
+            GALLERY_IMGS_SELECTOR = `.player .embed-responsive img`;
+            COPY_GALLERY_IMGS_SRCS = true;
+        }
 
         // Validate
         if (COPY_GALLERY_IMGS_SRCS && FULL_SIZE_IMG_SELECTOR) {
@@ -252,6 +271,43 @@
         SET_NAME = get_set_name_user_input();
         if (!SET_NAME) return;
 
+        if (DIFFERENT_METHOD) {
+            if (URL_OBJ.host.includes("hqnp.org")) hqnp();
+        }
+        else {
+            await standard_emthod();
+        }
+
+        display_msg(`Finished getting links.`);
+        save_as_crawljob_file();
+        //display_output();
+        if (FULL_SIZE_IMG_SELECTOR || ERRORS.length > 0) display_output();
+    }
+
+    function reset()
+    {
+        // reset vars
+        SET_NAME = ""; COUNTER = 1;
+        OUTPUT = []; ERRORS = [];
+
+        // remove output html
+        remove_output();
+    }
+
+
+    function get_set_name_user_input()
+    {
+        if (URL_OBJ.host.includes("sishisp.top")) {
+            return "sishisp.top - artdetail - " + document.location.href.split("artdetail-").pop().split(".html")[0];
+        }
+        return prompt("ENTER NAME OF SET:").trim();
+    }
+
+    //---------------------------------------------------
+    // Methods to get links
+
+    async function standard_emthod()
+    {
         let pageLink = get_first_page_url();
         let pageNumber = 1;
 
@@ -272,31 +328,6 @@
             pageLink = get_next_page_url(pageDom);
             pageNumber++;
         }
-
-        display_msg(`Finished getting links.`);
-        save_as_crawljob_file();
-        if (FULL_SIZE_IMG_SELECTOR || SHOW_OUTPUT) display_output();
-    }
-
-    function reset()
-    {
-        // reset vars
-        SET_NAME = ""; COUNTER = 1;
-        OUTPUT = []; ERRORS = [];
-
-        // remove output html
-        remove_output();
-    }
-
-
-    function get_set_name_user_input()
-    {
-        if (URL_OBJ.host.includes("nudecollect.com")) {
-            let setTitle = document.querySelector(".navbar2").innerText;
-            if (/^neverseen\d{4}/i.test(setTitle)) return setTitle.split(" ")[0];
-            if (/^TeenStarsMagazine \d{2,4}$/i.test(setTitle)) return setTitle.split(" ").join("_");
-        }
-        return prompt("ENTER NAME OF SET:").trim();
     }
 
     function get_first_page_url()
@@ -311,6 +342,20 @@
             } catch(err) {}
         }
         return window.location.href;
+    }
+
+    async function hqnp()
+    {
+        try {
+            let linksArr = document.querySelector(`#getall textarea[name="photos"]`).value.trim().split("\n");
+            for (let link of linksArr) {
+                OUTPUT.push(link + "#custnum=" + COUNTER);
+                COUNTER += 1;
+            }
+        }
+        catch(err) {
+            ERRORS.push(`FAILED TO GET LINKS`);
+        }
     }
 
     //---------------------------------------------------
@@ -390,14 +435,7 @@
             try {
                 let singleImgPageDom = await fetch_html_data(fullSizeImgPageUrl, null, FULL_SIZE_IMG_SELECTOR);
                 let fullSizeImgElem = singleImgPageDom.querySelector(FULL_SIZE_IMG_SELECTOR);
-
-                let fullSizeImgLink;
-                if (URL_OBJ.host.includes("urlgalleries.net")) {
-                    fullSizeImgLink = fullSizeImgElem.innerText.split(" = ")[1].split('"').join("").trim()
-                } else {
-                    fullSizeImgLink = fullSizeImgElem.src;
-                }
-
+                let fullSizeImgLink = fullSizeImgElem.src;
                 OUTPUT.push(fullSizeImgLink + "#custnum=" + counterAtTheTime);
             }
             catch(err) {
@@ -582,11 +620,11 @@
         return tempWrapper;
     }
 
-    // Some sites like nudecollect will return a page BUT something like "You're magic is wating...". So you need to keep making requests until it returns the right page.
+    // Some sites like hqnp will return a page BUT something like "You're magic is wating...". So you need to keep making requests until it returns the right page.
     async function fetch_html_data(url, formData, selectorToTest)
     {
         let attempts = 0;
-        while (attempts < 100) {
+        while (attempts < 200) {
             try {
                 let response;
                 if (!formData) response = await fetch(url, {method: 'get', credentials: 'include'});
