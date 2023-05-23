@@ -31,6 +31,8 @@
 // @include      /^http.*:\/\/(?:www\.)?picshick\.com\/.+$/
 // @include      /^http.*:\/\/(?:www\.)?x3vid\.com\/i.+\/.+\?source.+$/
 // @include      /^http.*:\/\/(?:www\.)?imagebam\.com\/image\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?kvador\.com\/(?!img).+$/
+// @include      /^http.*:\/\/(?:www\.)?kropic\.com\/(?!img).+$/
 // @grant        none
 // @run-at       document-start
 // ==/UserScript==
@@ -81,18 +83,32 @@
             document.cookie = "nsfw_inter=1; expires=Sun, 19 Mar 2050 14:23:40 GMT; path=/";
             cssSelector = `.main-image`;
         }
+        else if (urlObj.host.includes("kvador") || urlObj.host.includes("kropic")) {
+            cssSelector = `.pic`;
+            formData = new FormData();
+            formData.append(`op`, `view`);
+            formData.append(`id`, document.location.href.split(".com/")[1].split("/")[0]);
+            formData.append(`pre`, `1`);
+            formData.append(`next`, `Continue to image...`);
+            fetchMethod = "post";
+        }
 
         let postDom, imgElem;
         while (1==1)
         {
             postDom = await fetch_html_data(link, fetchMethod, formData);
-            if (postDom) {imgElem = postDom.querySelector(cssSelector);}
-            if (imgElem) {window.location.href = imgElem.src; break;}
+            if (postDom) {
+                imgElem = postDom.querySelector(cssSelector);
+            }
+            if (imgElem) {
+                window.location.href = imgElem.src;
+                break;
+            }
             await delay(100);
         }
     }
 
-    async function fetch_html_data(url, fetchMethod, formData)
+    async function fetch_html_data(url, fetchMethod="get", formData)
     {
         try {
             let response;
