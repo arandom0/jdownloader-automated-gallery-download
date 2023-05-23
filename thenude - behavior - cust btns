@@ -62,10 +62,10 @@
 
             let bingSearchHref = `https://www.bing.com/search?q=${rawTextToUrlQueryText(studioModelSetYearQty)}`;
             //let gibiruSearchHref = `https://gibiru.com/results.html?q=${rawTextToUrlQueryText(studioModelSetYear)}`;
-            let googleSearchHref = `https://www.google.com/search?q=${rawTextToUrlQueryText(studioModelSetYearQty)}`;
+            let googleSearchHref = `https://www.google.ca/search?q=${rawTextToUrlQueryText(studioModelSetYearQty)}`;
             let yandexSearchHref = `https://yandex.com/search/?text=${rawTextToUrlQueryText(studioModelSetYear)}`;
             //let nudeCollectSearchHref = `https://nudecollect.com/websearch/${rawTextToStandardUrlText(modelSet)}/index.html`;
-            let hqnpSearchHref = `https://vip.hqnp.org/search/${rawTextToStandardUrlText(modelSet)}/index.html`;
+            let hqnpSearchHref = `https://vip.hqnp.org/search/${rawTextToStandardUrlText(titleShortener(ncNpRmEffedUpSymbols(modelSet), 25))}/index.html`;
             let kittyKatsSearchHref = `https://kitty-kats.net/search/?q=${rawTextToUrlQueryText(modelSet)}&c[title_only]=1&o=date`;
             let viperGirlsSearchHref = `https://vipergirls.to/forum.php#searchtext=${rawTextToUrlQueryText(modelSet, "%20")}`;
 
@@ -84,6 +84,28 @@
 
             setElem.querySelector(`figure[class="figure gall-img"]`).appendChild(htmlToNode(htmlToAppend));
         }
+    }
+
+    // nudecollect and hqnp don't like the & symbol for instance, and even if you search for it manually, the results are completely unaccurate
+    function ncNpRmEffedUpSymbols(str)
+    {
+        str = str.replaceAll("&", "");
+        str = str.replace(/[ ]+/g, " ").trim();
+        return str;
+    }
+
+    function titleShortener(str, limit)
+    {
+        if (str.length <= limit) return str;
+
+        let minLengthOfWord = 3;
+
+        let newStr = ""
+        for (let word of str.split(" ")) {
+            if (word.length >= minLengthOfWord && newStr.length+word.length+1 <= limit) newStr += word + " ";
+        }
+
+        return newStr.trim();
     }
 
     function getSetInfoObj(setElem)
