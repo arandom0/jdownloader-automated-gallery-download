@@ -279,9 +279,8 @@
         }
 
         display_msg(`Finished getting links.`);
-        save_as_crawljob_file();
-        //display_output();
-        if (FULL_SIZE_IMG_SELECTOR || ERRORS.length > 0) display_output();
+        let crawljobSaveSuccess = await save_as_crawljob_file();
+        if (FULL_SIZE_IMG_SELECTOR || ERRORS.length > 0 || !crawljobSaveSuccess) display_output();
     }
 
     function reset()
@@ -434,12 +433,28 @@
         {
             try {
                 let singleImgPageDom = await fetch_html_data(fullSizeImgPageUrl, null, FULL_SIZE_IMG_SELECTOR);
-                let fullSizeImgElem = singleImgPageDom.querySelector(FULL_SIZE_IMG_SELECTOR);
-                let fullSizeImgLink = fullSizeImgElem.src;
+
+                let fullSizeImgLink;
+                if (FULL_SIZE_IMG_SELECTOR == "script") fullSizeImgLink = get_fullsize_link_from_script(fullSizeImgPageUrl, singleImgPageDom);
+                else fullSizeImgLink = singleImgPageDom.querySelector(FULL_SIZE_IMG_SELECTOR).src;
+
                 OUTPUT.push(fullSizeImgLink + "#custnum=" + counterAtTheTime);
             }
             catch(err) {
                 ERRORS.push(`FAILED TO FETCH FULL SIZE IMAGE LINK:\n${fullSizeImgPageUrl}\n`);
+            }
+        }
+
+        function get_fullsize_link_from_script(fullSizeImgPageUrl, singleImgPageDom)
+        {
+            if (URL_OBJ.host.includes("urlgalleries.net")) {
+                try {
+                    return singleImgPageDom.querySelector("script").innerText.split('externalUrl = "')[1].split('"')[0];
+                }
+                catch(err) {
+                    ERRORS.push(`FAILED TO GET FULL SIZE IMAGE LINK FROM SCRIPT ELEMENT:\n${fullSizeImgPageUrl}\n`);
+                    return false;
+                }
             }
         }
     }
@@ -518,7 +533,7 @@
     //---------------------------------------------------
     // Option 2
 
-    function save_as_crawljob_file()
+    async function save_as_crawljob_file()
     {
         let outputObj =
             [
@@ -530,14 +545,19 @@
                 }
             ];
 
-        let base64Encoded = btoa(JSON.stringify(outputObj));
+        let base64Encoded;
+        try {base64Encoded = btoa(JSON.stringify(outputObj));}
+        catch(err) {display_msg(`FAILED SAVING FILE - SYMBOL ERROR`, "errorCustMsg"); return false;}
+
         GM_download({
             url:`data:text/plain;base64,${base64Encoded}`,
             name:`${SET_NAME}.crawljob`,
             saveAs:false,
-            onerror:()=>{display_msg(`FAILED SAVING FILE`, "errorCustMsg")},
+            onerror:()=>{display_msg(`FAILED SAVING FILE`, "errorCustMsg"); return false;},
             onload:()=>{display_msg(`FILE SAVED with ${OUTPUT.length} links`, "successCustMsg")}
         });
+
+        return true;
     }
 
     //---------------------------------------------------
