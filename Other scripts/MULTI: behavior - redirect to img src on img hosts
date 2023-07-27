@@ -55,8 +55,8 @@
         else if (urlObj.host.includes("imagetwist")) cssSelector = `.pic.img.img-responsive`;
         else if (urlObj.host.includes("imgspice")) cssSelector = `#imgpreview`;
         else if (urlObj.host.includes("imgbox")) cssSelector = `#img.image-content`;
-        else if (urlObj.host.includes("imagefap")) cssSelector = `#mainPhoto`;
-        else if (urlObj.host.includes("imagevenue")) cssSelector = `a[data-toggle="full"] img`;
+        else if (urlObj.host.includes("imagefap")) cssSelector = `.thumbs a[href*="${window.location.href.split("/photo/")[1].split("/")[0]}"]`;
+        else if (urlObj.host.includes("imagevenue")) cssSelector = `#main-image`;
         else if (urlObj.host.includes("nudecollect") || urlObj.host.includes("hqnp")) cssSelector = `.ncimage img`;
         else if (urlObj.host.includes("pimpandhost")) cssSelector = `img[id^="img_"]`;
         else if (urlObj.host.includes("fastpic")) cssSelector = `#imglink img[src^="http"]`;
@@ -93,15 +93,20 @@
             fetchMethod = "post";
         }
 
-        let postDom, imgElem;
+        let postDom, requiredElem;
         while (1==1)
         {
             postDom = await fetch_html_data(link, fetchMethod, formData);
             if (postDom) {
-                imgElem = postDom.querySelector(cssSelector);
+                requiredElem = postDom.querySelector(cssSelector);
             }
-            if (imgElem) {
-                window.location.href = imgElem.src;
+            if (requiredElem) {
+                if (requiredElem.nodeName == "IMG") {
+                    window.location.href = requiredElem.src;
+                }
+                else if ((requiredElem.nodeName == "A")) {
+                    window.location.href = requiredElem.href;
+                }
                 break;
             }
             await delay(100);

@@ -13,17 +13,20 @@
   - The rest of the scripts in this repository are helper scripts for various sites, which are not required but can make the discovery and navigation process way easier.
   - MULTI: behavior - redirect to img src on img hosts
     - Whenever you open an image from one of the common image hosts in your browser, it will automatically redirect you to the image's actual url
+  - imagefap - behaviour - redirect to no page
+    - Redirects to the page containing the entire gallery without pages
   - imagefap - design - simple gallery
-    - Something I wrote some time ago to make imagefap galleries easier to navigate
+    - Make imagefap galleries easier to navigate
   - thenude scirpts
     - Thenude is a site that has almost all the info for almost all the models / porn stars out there.
     - The first script makes it so that when you click on a set it is highlighted
     - The second script adds buttons underneath each set that you can click on to easielly find the full set
       - At the time of writing this: B, G, Y are to search using search engines (Bing, Google, Yandex). NP = search in hqnp, KK = search in kitty-kats, VG = search in vipergirls, VGE = search in vipergirls titles only (exact match)
         - hqnp (NP button) is very useful a lot of times, but requires a registration. Go to hqnp.org and register. Even after registration, make sure to visit the site (hqnp.org) and you're still logged in before you start actually looking for stuff using the NP button that day.
-    - vipergirls scripts
-      - The first one - "vipergirls - behavior - thenude search addon" is an addon for thenude's VG and VGE buttons work in the previous script discussed
-      - The scond one - "vipergirls - behavior - 'condense' posts" condences large posts so that you don't have load a billion images into your memory or wait for a long time. Very useful.
+  - vipergirls scripts
+    - "condense posts" condences large posts so that you don't have load a billion images and wait for a long time. Very useful.
+    - "thenude search addon" is an addon for thenude's VG and VGE buttons work in the previous script discussed
+    - "hide non-photo results" hides non-photo search results as the title suggests
   
 ---
   

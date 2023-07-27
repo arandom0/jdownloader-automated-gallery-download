@@ -1,0 +1,17 @@
+// ==UserScript==
+// @name         imagefap - behaviour - redirect to no pages
+// @namespace    http://tampermonkey.net/
+// @version      0.1
+// @description  try to take over the world!
+// @author       You
+// @include      /^http.*:\/\/(?:www\.)?imagefap\.com\/pictures\/.+$/
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=imagefap.com
+// @run-at       document-start
+// ==/UserScript==
+
+(function() {
+    'use strict';
+    // redirects to the link where all  the images in a gallary are displayed at once (without pages), by adding "?view=3"
+    let url = window.location.href;
+    if (!url.includes("?view=3")) window.location.href = url.split("?")[0] + "?view=3";
+})();

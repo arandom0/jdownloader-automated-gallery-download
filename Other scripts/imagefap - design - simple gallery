@@ -16,14 +16,15 @@
     if (!url.includes("?view=3")) window.location.href = url.split("?")[0] + "?view=3";
 
     let newHtml = "";
-    let allImgElems = document.querySelectorAll("#gallery img");
+    let allImgElems = document.querySelectorAll(`#gallery img:not([src*="ajax-loader"])`);
 
     // base html
     for (let imgElem of allImgElems)
     {
-        if (imgElem.src.includes("ajax-loader")) continue;
         newHtml += `<a href="${imgElem.parentElement.href}"><img src="${imgElem.src}"/></a>`;
     }
+
+    newHtml = `<div id="gallery">` + newHtml + `</div>`;
 
     newHtml +=
         `<style>

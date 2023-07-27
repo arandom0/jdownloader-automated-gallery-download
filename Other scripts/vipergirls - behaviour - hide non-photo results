@@ -1,0 +1,43 @@
+// ==UserScript==
+// @name         vipergirls - behaviour - hide non-photo results (optional)
+// @namespace    http://tampermonkey.net/
+// @version      0.1
+// @description  try to take over the world!
+// @author       You
+// @match        https://vipergirls.to/search.php*
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=vipergirls.to
+// @grant        none
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    init();
+    function init()
+    {
+        document.querySelector("#breadcrumb").appendChild(html_to_node(`<p><button id="custhidenonphotoresultsbtn">HIDE NON PHOTOS</button></p>`));
+        document.querySelector("#custhidenonphotoresultsbtn").addEventListener("click", remove_non_photo_sets)
+    }
+
+
+    function remove_non_photo_sets()
+    {
+        let allPostCatgElems = document.querySelectorAll(`#searchbits .threadpostedin.td.alt`);
+        for (let elem of allPostCatgElems) {
+            let text = elem.innerText.toLowerCase();
+            if (!text.includes("photo") && !text.includes("picture")) {
+                elem.parentElement.remove();
+            }
+        }
+    }
+
+    ////////////////////////////////
+
+    function html_to_node(code)
+    {
+        let tempWrapper = document.createElement("div");
+        tempWrapper.innerHTML = code;
+        if (tempWrapper.childElementCount == 1) tempWrapper = tempWrapper.firstChild;
+        return tempWrapper;
+    }
+})();

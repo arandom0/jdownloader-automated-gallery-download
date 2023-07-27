@@ -19,6 +19,7 @@
 // @include      /^http.*:\/\/(?:www\.)?porncoven\.com\/threads\/.+$/
 // @include      /^http.*:\/\/(?:www\.)?indexxx\.to\/threads\/.+$/
 // @include      /^http.*:\/\/(?:www\.)?adultphotosets\.best\/softcore-photo-sets\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?adultphotosets\.best\/hardcore-photo-sets\/.+$/
 // @include      /^http.*:\/\/(?:www\.)?photos18\.com\/.+$/
 // @include      /^http.*:\/\/(?:www\.)?hothag\.com\/galleries\/.+$/
 // @include      /^http.*:\/\/(?:www\.)?imx\.to\/g\/.+$/
@@ -31,6 +32,7 @@
 // @include      /^http.*:\/\/(?:www\.)?fappeningbook\.com\/.+$/
 // @include      /^http.*:\/\/(?:www\.)?nudemodels\.cc\/.+$/
 // @include      /^http.*:\/\/(?:www\.)?gjbisai\.info\/index\.php\/artdetail-.+$/
+// @include      /^http.*:\/\/(?:www\.)?xfobo\.com\/showthread\.php.+$/
 // @match        *://onpornpics.com/*
 // @match        *://fapodrom.com/*
 // @match        *://girlsreleased.com/*
@@ -100,17 +102,11 @@
             FULL_SIZE_IMG_SELECTOR = `script`;
         }
         else if (URL_OBJ.host.includes("hqnp.org")) {
-            //GALLERY_IMGS_SELECTOR = `.image img`;
-            //FULL_SIZE_IMG_SELECTOR = `.ncimage img`;
-            //PAGINATION_LINKS_SELECTOR = `.imgpagebar a`;
             DIFFERENT_METHOD = true;
         }
         else if (URL_OBJ.host.includes("imagefap.com")) {
-            GALLERY_IMGS_SELECTOR = "body a img";
-            // I have my other scripts which changes the layout take care of the pages and change the selector
-            //ALLERY_IMGS_SELECTOR = `#gallery td img:not([src*="ajax-loader.gif"])`;
-            //PAGINATION_LINKS_SELECTOR = `a[class^="link3"]`;
-            FULL_SIZE_IMG_SELECTOR = `#mainPhoto`;
+            GALLERY_IMGS_SELECTOR = `#gallery img:not([src*="ajax-loader"])`;
+            PAGINATION_LINKS_SELECTOR = `a[class^="link3"]`;
         }
         else if (URL_OBJ.host.includes("kitty-kats.net") || URL_OBJ.host.includes("indexxx.to")) {
             GALLERY_IMGS_SELECTOR = ".message-userContent img";
@@ -121,7 +117,7 @@
         else if (URL_OBJ.host.includes("erohd.net")) {
             GALLERY_IMGS_SELECTOR = ".sigFreeImg";
         }
-        else if (URL_OBJ.host.includes("vipergirls.to") || URL_OBJ.host.includes("eroticity.net") || URL_OBJ.host.includes("porncoven.com")) {
+        else if (URL_OBJ.host.includes("vipergirls.to") || URL_OBJ.host.includes("eroticity.net") || URL_OBJ.host.includes("porncoven.com") || URL_OBJ.host.includes("xfobo.com")) {
             GALLERY_IMGS_SELECTOR = "img";
             POST_WRAPPER_SELECTOR = `div[id^="post_message_"]`;
         }
@@ -223,7 +219,6 @@
             GALLERY_IMGS_SELECTOR = `.player .embed-responsive img`;
             COPY_GALLERY_IMGS_SRCS = true;
         }
-
         // Validate
         if (COPY_GALLERY_IMGS_SRCS && FULL_SIZE_IMG_SELECTOR) {
             alert("COPY_GALLERY_IMGS_SRCS and FULL_SIZE_IMG_SELECTOR can't be both set");
@@ -279,6 +274,7 @@
         }
 
         display_msg(`Finished getting links.`);
+        //display_output();
         let crawljobSaveSuccess = await save_as_crawljob_file();
         if (FULL_SIZE_IMG_SELECTOR || ERRORS.length > 0 || !crawljobSaveSuccess) display_output();
     }
