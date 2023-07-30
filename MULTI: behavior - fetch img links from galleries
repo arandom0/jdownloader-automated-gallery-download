@@ -33,6 +33,7 @@
 // @include      /^http.*:\/\/(?:www\.)?nudemodels\.cc\/.+$/
 // @include      /^http.*:\/\/(?:www\.)?gjbisai\.info\/index\.php\/artdetail-.+$/
 // @include      /^http.*:\/\/(?:www\.)?xfobo\.com\/showthread\.php.+$/
+// @include      /^http.*:\/\/(?:www\.)?jpegworld\.com\/galleries\/.+$/
 // @match        *://onpornpics.com/*
 // @match        *://fapodrom.com/*
 // @match        *://girlsreleased.com/*
@@ -61,8 +62,8 @@
     // Working
 
     let SET_NAME = "";
+    let PAGE_NUMBER = 1;
     let COUNTER = 1;
-
     let OUTPUT = [];
     let ERRORS = [];
 
@@ -77,18 +78,13 @@
     let FULL_SIZE_IMG_SELECTOR = ""; // setting this essentially means the script will open all the gallery img links and retrieve the full-size image link (must be on the same site)
     let PAGINATION_LINKS_SELECTOR = ""; // setting this tells the script you're dealing with a multi-page gallery. It gets all page links and loops to see if one called "next" exists
     let POST_WRAPPER_SELECTOR = ""; // setting this tells the script it needs the user to select a post. The selector is used to verify that it was clicked within post.
-    let DIFFERENT_METHOD = false; // setting this means a completely different method needs to be used
+    let DIFFERENT_METHOD = false; // setting this means a completely different method needs to be used (it needs to be defined)
 
     /****************************************************/
-    // START
+    // INITIALIZE (START)
     /****************************************************/
 
     init();
-
-    /****************************************************/
-    // INITIALIZE
-    /****************************************************/
-
     function init()
     {
         set_per_site_vars();
@@ -98,8 +94,8 @@
     function set_per_site_vars()
     {
         if (URL_OBJ.host.includes("urlgalleries.net")) {
-            GALLERY_IMGS_SELECTOR = `img[class="gallery-thumb"]`;
-            FULL_SIZE_IMG_SELECTOR = `script`;
+            GALLERY_IMGS_SELECTOR = `#wtf img`;
+            DIFFERENT_METHOD = true;
         }
         else if (URL_OBJ.host.includes("hqnp.org")) {
             DIFFERENT_METHOD = true;
@@ -219,6 +215,10 @@
             GALLERY_IMGS_SELECTOR = `.player .embed-responsive img`;
             COPY_GALLERY_IMGS_SRCS = true;
         }
+        else if (URL_OBJ.host.includes("jpegworld.com")) {
+            GALLERY_IMGS_SELECTOR = `.gallery-inner-col.inner-col img`;
+        }
+
         // Validate
         if (COPY_GALLERY_IMGS_SRCS && FULL_SIZE_IMG_SELECTOR) {
             alert("COPY_GALLERY_IMGS_SRCS and FULL_SIZE_IMG_SELECTOR can't be both set");
@@ -261,35 +261,35 @@
 
     async function run()
     {
-        reset();
+        // Reset variables from last use
+        SET_NAME = "";
+        PAGE_NUMBER = 1;
+        COUNTER = 1;
+        OUTPUT = [];
+        ERRORS = [];
 
+        // Remove previous output
+        try {document.querySelector("#outputBlock").remove();} catch(err) {}
+
+        // Get the name of the gallery/set from the user
         SET_NAME = get_set_name_user_input();
         if (!SET_NAME) return;
 
-        if (DIFFERENT_METHOD) {
-            if (URL_OBJ.host.includes("hqnp.org")) hqnp();
-        }
-        else {
-            await standard_emthod();
-        }
+        // Get the links
+        if (DIFFERENT_METHOD) await different_methods();
+        else await standard_emthod();
 
+        // Output
         display_msg(`Finished getting links.`);
         //display_output();
         let crawljobSaveSuccess = await save_as_crawljob_file();
         if (FULL_SIZE_IMG_SELECTOR || ERRORS.length > 0 || !crawljobSaveSuccess) display_output();
     }
 
-    function reset()
-    {
-        // reset vars
-        SET_NAME = ""; COUNTER = 1;
-        OUTPUT = []; ERRORS = [];
+    //---------------------------------------------------
+    // Get set name user input
 
-        // remove output html
-        remove_output();
-    }
-
-
+    // This is a seperate function because it could get longer if I decide to add more auto-generated names
     function get_set_name_user_input()
     {
         if (URL_OBJ.host.includes("sishisp.top")) {
@@ -303,29 +303,64 @@
 
     async function standard_emthod()
     {
-        let pageLink = get_first_page_url();
-        let pageNumber = 1;
+        let curUrl = get_starting_url();
 
-        while (pageLink)
+        while(curUrl)
         {
-            display_msg(`Working on page ${pageNumber}`);
+            if (PAGINATION_LINKS_SELECTOR) display_msg(`Working on page ${PAGE_NUMBER}`);
 
-            let pageDom = await get_page_dom(pageLink);
+            let domElem = await get_dom_element(curUrl);
 
-            if (pageDom) {
-                if (FULL_SIZE_IMG_SELECTOR) await get_fullsize_links(pageDom, pageNumber);
-                else get_links_from_gallery(pageDom);
+            if (domElem) {
+                if (FULL_SIZE_IMG_SELECTOR) await fetch_fullsize_links(domElem);
+                else get_links_from_gallery(domElem);
             }
             else {
-                ERRORS.push(`FAILED TO FETCH PAGE:\n${pageLink}\n`);
+                ERRORS.push(`FAILED TO FETCH PAGE:\n${curUrl}\n`);
             }
 
-            pageLink = get_next_page_url(pageDom);
-            pageNumber++;
+            if (!PAGINATION_LINKS_SELECTOR) {
+                break;
+            }
+            else {
+                curUrl = get_next_page_url(domElem);
+                PAGE_NUMBER++;
+            }
         }
     }
 
-    function get_first_page_url()
+    // define each different method's name as the site
+    async function different_methods()
+    {
+        if (URL_OBJ.host.includes("hqnp.org")) {
+            // There is a "Download Album button, which is a textarea containing all the links"
+            try {
+                let linksArr = document.querySelector(`#getall textarea[name="photos"]`).value.trim().split("\n");
+                for (let link of linksArr) {
+                    OUTPUT.push(link + "#custnum=" + COUNTER);
+                    COUNTER += 1;
+                }
+            }
+            catch(err) {
+                ERRORS.push(`FAILED TO GET LINKS`);
+            }
+        }
+        else if (URL_OBJ.host.includes("urlgalleries.net")) {
+            // by adding "&a=10000" to the end you get all the images on one page
+            let url = window.location.href;
+            let domElem;
+            if (url.includes("&a=10000")) domElem = document;
+            else domElem = await fetch_html_data(url.split("?")[0].split("&")[0] + "&a=10000", null, GALLERY_IMGS_SELECTOR);
+            if (!domElem) ERRORS.push(`FAILED TO GET LINKS`);
+            get_links_from_gallery(domElem);
+        }
+    }
+
+    //---------------------------------------------------
+    // Standard method helpers
+
+    // The starting url is either the link itself, assuming there are no pages, or the link to the first page, which this function tries to get
+    function get_starting_url()
     {
         if (!PAGINATION_LINKS_SELECTOR) return window.location.href;
 
@@ -336,70 +371,56 @@
                 if (elem.innerText.toLowerCase().includes("first") || elem.innerText.trim() == "1") return elem.href;
             } catch(err) {}
         }
+
         return window.location.href;
     }
 
-    async function hqnp()
+    // The dom element can be either:
+    // a fetched page - when multiple pages
+    // a post element - if user needs to select it
+    // the document element of the url loaded in the browser - assuming no pages and no user selection is required
+    async function get_dom_element(curUrl)
     {
-        try {
-            let linksArr = document.querySelector(`#getall textarea[name="photos"]`).value.trim().split("\n");
-            for (let link of linksArr) {
-                OUTPUT.push(link + "#custnum=" + COUNTER);
-                COUNTER += 1;
-            }
-        }
-        catch(err) {
-            ERRORS.push(`FAILED TO GET LINKS`);
-        }
-    }
+        let domElem;
 
-    //---------------------------------------------------
-    // Get pagedom
+        if (PAGINATION_LINKS_SELECTOR) domElem = await fetch_html_data(curUrl, null, GALLERY_IMGS_SELECTOR);
+        else if (POST_WRAPPER_SELECTOR) domElem = await get_user_post_selection();
+        else domElem = document;
 
-    // this one is rather tricky. The page dom can be either a fetched page (when multiple pages), the document element or a post element (if user needs to select it)
-    async function get_page_dom(pageLink)
-    {
-        let pageDom;
+        return domElem;
 
-        if (PAGINATION_LINKS_SELECTOR) pageDom = await fetch_html_data(pageLink, null, GALLERY_IMGS_SELECTOR);
-        else if (POST_WRAPPER_SELECTOR) pageDom = await get_user_post_selection();
-        else pageDom = document;
 
-        return pageDom;
-    }
-
-    async function get_user_post_selection()
-    {
-        document.querySelector("body").addEventListener("click", get_user_post_selection_handler);
-        display_msg("Click on the post body you wish to select...");
-
-        let postDom = false;
-        while (!postDom) await delay(100);
-        return postDom;
-
-        function get_user_post_selection_handler(event)
+        async function get_user_post_selection()
         {
-            let elem = event.target;
-            let matchedElem = elem.closest(POST_WRAPPER_SELECTOR); // closest(cssQuery) returns the first parent element matching the selector, null if no match
-            if (matchedElem) {
-                document.querySelector("body").removeEventListener("click", get_user_post_selection_handler);
-                postDom = matchedElem;
-            }
-            else {
-                display_msg("Improper selection, try again", "errorCustMsg");
+            document.querySelector("body").addEventListener("click", get_user_post_selection_handler);
+            display_msg("Click on the post body you wish to select...");
+
+            let postDom = false;
+            while (!postDom) await delay(100);
+            return postDom;
+
+            function get_user_post_selection_handler(event)
+            {
+                let elem = event.target;
+                let matchedElem = elem.closest(POST_WRAPPER_SELECTOR); // closest(cssQuery) returns the first parent element matching the selector, null if no match
+                if (matchedElem) {
+                    document.querySelector("body").removeEventListener("click", get_user_post_selection_handler);
+                    postDom = matchedElem;
+                }
+                else {
+                    display_msg("Improper selection, try again", "errorCustMsg");
+                }
             }
         }
     }
 
-    //---------------------------------------------------
-    // Get links
-
-    async function get_fullsize_links(pageDom, pageNumber)
+    // All the images on the page are opened seperatly and the full size image link is acquired from their individual pages
+    async function fetch_fullsize_links(domElem)
     {
         let antiConjestionCounter = 0; // prevents making too many simintanois requests - aka for ex. not wating on 200 iamges at once
         let antiConjestionLimit = 20;
 
-        let allGalleryImgElems = pageDom.querySelectorAll(GALLERY_IMGS_SELECTOR);
+        let allGalleryImgElems = domElem.querySelectorAll(GALLERY_IMGS_SELECTOR);
         let promises = [];
 
         for (let imgElem of allGalleryImgElems)
@@ -422,42 +443,25 @@
             COUNTER += 1;
         }
 
-        display_msg(`Waiting for images on page ${pageNumber} to fetch`);
+        display_msg(`Waiting for images on page ${PAGE_NUMBER} to fetch`);
         await Promise.all(promises);
 
         async function get_fullsize_link(fullSizeImgPageUrl, counterAtTheTime)
         {
             try {
                 let singleImgPageDom = await fetch_html_data(fullSizeImgPageUrl, null, FULL_SIZE_IMG_SELECTOR);
-
-                let fullSizeImgLink;
-                if (FULL_SIZE_IMG_SELECTOR == "script") fullSizeImgLink = get_fullsize_link_from_script(fullSizeImgPageUrl, singleImgPageDom);
-                else fullSizeImgLink = singleImgPageDom.querySelector(FULL_SIZE_IMG_SELECTOR).src;
-
+                let fullSizeImgLink = singleImgPageDom.querySelector(FULL_SIZE_IMG_SELECTOR).src;
                 OUTPUT.push(fullSizeImgLink + "#custnum=" + counterAtTheTime);
             }
             catch(err) {
                 ERRORS.push(`FAILED TO FETCH FULL SIZE IMAGE LINK:\n${fullSizeImgPageUrl}\n`);
             }
         }
-
-        function get_fullsize_link_from_script(fullSizeImgPageUrl, singleImgPageDom)
-        {
-            if (URL_OBJ.host.includes("urlgalleries.net")) {
-                try {
-                    return singleImgPageDom.querySelector("script").innerText.split('externalUrl = "')[1].split('"')[0];
-                }
-                catch(err) {
-                    ERRORS.push(`FAILED TO GET FULL SIZE IMAGE LINK FROM SCRIPT ELEMENT:\n${fullSizeImgPageUrl}\n`);
-                    return false;
-                }
-            }
-        }
     }
 
-    function get_links_from_gallery(pageDom)
+    function get_links_from_gallery(domElem)
     {
-        let allGalleryImgElems = pageDom.querySelectorAll(GALLERY_IMGS_SELECTOR);
+        let allGalleryImgElems = domElem.querySelectorAll(GALLERY_IMGS_SELECTOR);
 
         for (let imgElem of allGalleryImgElems)
         {
@@ -468,11 +472,16 @@
         }
     }
 
-    function get_next_page_url(pageDom)
+    // This one returns the image link based on per-set prefernces (image source vs href)
+    function get_image_link(imgElem)
     {
-        if (!PAGINATION_LINKS_SELECTOR) return false;
+        if (COPY_GALLERY_IMGS_SRCS) return imgElem.src;
+        else return imgElem.closest("a");
+    }
 
-        let allPaginationElems = pageDom.querySelectorAll(PAGINATION_LINKS_SELECTOR);
+    function get_next_page_url(domElem)
+    {
+        let allPaginationElems = domElem.querySelectorAll(PAGINATION_LINKS_SELECTOR);
         for (let elem of allPaginationElems)
         {
             try {
@@ -482,34 +491,8 @@
         return null;
     }
 
-    function get_image_link(imgElem)
-    {
-        if (COPY_GALLERY_IMGS_SRCS) return imgElem.src;
-
-        let movingElem = imgElem;
-        let attempts = 0;
-        let maxParents = 2;
-
-        try {
-            while (attempts < maxParents) {
-                movingElem = movingElem.parentElement;
-                if (movingElem.nodeName == "A") return movingElem.href;
-                attempts += 1;
-            }
-        }
-        catch(err) {
-            return false;
-        }
-        return false;
-    }
-
-
-    /****************************************************/
-    // OUTPUT
-    /****************************************************/
-
     //---------------------------------------------------
-    // Option 1
+    // Output options (configure at the bottom of the run function which one to use and when)
 
     async function contact_jdownloader()
     {
@@ -525,9 +508,6 @@
         let formElem = document.querySelector("#jdForm");
         formElem.submit();
     }
-
-    //---------------------------------------------------
-    // Option 2
 
     async function save_as_crawljob_file()
     {
@@ -556,9 +536,6 @@
         return true;
     }
 
-    //---------------------------------------------------
-    // Option 3
-
     function display_output()
     {
         let html =
@@ -580,42 +557,27 @@
         document.querySelector("#out").value = OUTPUT.join("\n");
         document.querySelector("#err").value = ERRORS.join("\n");
 
-        document.querySelector("#copySetNameBtn").addEventListener("click", copyOutputSetNameToClip);
-        document.querySelector("#copyLinksBtn").addEventListener("click", copyOutputLinksToClip);
-        document.querySelector("#removeOutput").addEventListener("click", remove_output);
+        document.querySelector("#copySetNameBtn").addEventListener("click", ()=>{
+            GM_setClipboard(SET_NAME, "text");
+            display_msg(`COPIED SET NAME`, "successCustMsg");
+        });
+        document.querySelector("#copyLinksBtn").addEventListener("click", ()=>{
+            GM_setClipboard(document.querySelector("#out").value, "text");
+            display_msg(`COPIED ${OUTPUT.length} links`, "successCustMsg");
+        });
+        document.querySelector("#removeOutput").addEventListener("click", ()=>{
+            try {document.querySelector("#outputBlock").remove();} catch(err) {}
+        });
     }
 
-    //---------------------------------------------------
-    // Option 4
-
-    function copyLinksToClip() {
+    function copy_outout_to_clipboard() {
         GM_setClipboard(OUTPUT.join("\n"), "text");
         display_msg(`COPIED ${OUTPUT.length} links`, "successCustMsg");
-    }
-
-    //---------------------------------------------------
-    // Helpers
-
-    function copyOutputLinksToClip() {
-        GM_setClipboard(document.querySelector("#out").value, "text");
-        display_msg(`COPIED ${OUTPUT.length} links`, "successCustMsg");
-    }
-    function copyOutputSetNameToClip() {
-        GM_setClipboard(SET_NAME, "text");
-        display_msg(`COPIED SET NAME`, "successCustMsg");
     }
 
     /****************************************************/
     // GLOBAL HELPERS
     /****************************************************/
-
-    function remove_output()
-    {
-        try {
-            document.querySelector("#outputBlock").remove();
-            document.querySelector("#outputStyle").remove();
-        } catch(err) {}
-    }
 
     async function display_msg(text, htmlClass="genericCustMsg")
     {
