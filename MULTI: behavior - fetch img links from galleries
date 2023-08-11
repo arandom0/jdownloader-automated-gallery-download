@@ -34,6 +34,7 @@
 // @include      /^http.*:\/\/(?:www\.)?gjbisai\.info\/index\.php\/artdetail-.+$/
 // @include      /^http.*:\/\/(?:www\.)?xfobo\.com\/showthread\.php.+$/
 // @include      /^http.*:\/\/(?:www\.)?jpegworld\.com\/galleries\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?poiski\.pro\/vk\/user\/.+$/
 // @match        *://onpornpics.com/*
 // @match        *://fapodrom.com/*
 // @match        *://girlsreleased.com/*
@@ -218,6 +219,9 @@
         else if (URL_OBJ.host.includes("jpegworld.com")) {
             GALLERY_IMGS_SELECTOR = `.gallery-inner-col.inner-col img`;
         }
+        else if (URL_OBJ.host.includes("poiski.pro")) {
+            GALLERY_IMGS_SELECTOR = `.img_thumb_lightgallery`;
+        }
 
         // Validate
         if (COPY_GALLERY_IMGS_SRCS && FULL_SIZE_IMG_SELECTOR) {
@@ -294,6 +298,9 @@
     {
         if (URL_OBJ.host.includes("sishisp.top")) {
             return "sishisp.top - artdetail - " + document.location.href.split("artdetail-").pop().split(".html")[0];
+        }
+        else if (URL_OBJ.host.includes("poiski.pro")) {
+            return "vk.com - " + document.querySelector(".main h1").innerText.trim() + " - " + document.location.href.split("user/id")[1].trim();
         }
         return prompt("ENTER NAME OF SET:").trim();
     }
@@ -521,9 +528,7 @@
                 }
             ];
 
-        let base64Encoded;
-        try {base64Encoded = btoa(JSON.stringify(outputObj));}
-        catch(err) {display_msg(`FAILED SAVING FILE - SYMBOL ERROR`, "errorCustMsg"); return false;}
+        let base64Encoded = utf8ToBase64(JSON.stringify(outputObj));
 
         GM_download({
             url:`data:text/plain;base64,${base64Encoded}`,
@@ -534,6 +539,18 @@
         });
 
         return true;
+
+        function utf8ToBase64(str) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(str);
+            let base64 = '';
+
+            for (let i = 0; i < data.length; i++) {
+                base64 += String.fromCharCode(data[i]);
+            }
+
+            return btoa(base64);
+        }
     }
 
     function display_output()
