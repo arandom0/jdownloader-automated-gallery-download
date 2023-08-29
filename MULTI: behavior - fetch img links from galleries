@@ -35,6 +35,8 @@
 // @include      /^http.*:\/\/(?:www\.)?xfobo\.com\/showthread\.php.+$/
 // @include      /^http.*:\/\/(?:www\.)?jpegworld\.com\/galleries\/.+$/
 // @include      /^http.*:\/\/(?:www\.)?poiski\.pro\/vk\/user\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?hotpic\.cc\/album\/.+$/
+// @include      /^http.*:\/\/(?:www\.)?xchina\.pro\/photo\/id.+$/
 // @match        *://onpornpics.com/*
 // @match        *://fapodrom.com/*
 // @match        *://girlsreleased.com/*
@@ -222,6 +224,12 @@
         else if (URL_OBJ.host.includes("poiski.pro")) {
             GALLERY_IMGS_SELECTOR = `.img_thumb_lightgallery`;
         }
+        else if (URL_OBJ.host.includes("hotpic.cc")) {
+            GALLERY_IMGS_SELECTOR = `.hotgrid.row.g-1 img`;
+        }
+        else if (URL_OBJ.host.includes("xchina.pro")) {
+            GALLERY_IMGS_SELECTOR = `.photos > a img`;
+        }
 
         // Validate
         if (COPY_GALLERY_IMGS_SRCS && FULL_SIZE_IMG_SELECTOR) {
@@ -301,6 +309,9 @@
         }
         else if (URL_OBJ.host.includes("poiski.pro")) {
             return "vk.com - " + document.querySelector(".main h1").innerText.trim() + " - " + document.location.href.split("user/id")[1].trim();
+        }
+        else if (URL_OBJ.host.includes("xchina.pro")) {
+            return "xchina - " + window.location.href.split("id-")[1].split("/")[0].split(".html")[0];
         }
         return prompt("ENTER NAME OF SET:").trim();
     }
@@ -482,8 +493,12 @@
     // This one returns the image link based on per-set prefernces (image source vs href)
     function get_image_link(imgElem)
     {
-        if (COPY_GALLERY_IMGS_SRCS) return imgElem.src;
-        else return imgElem.closest("a");
+        if (COPY_GALLERY_IMGS_SRCS) {
+            return imgElem.src;
+        }
+        else {
+            return imgElem.closest("a").href;
+        }
     }
 
     function get_next_page_url(domElem)

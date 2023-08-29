@@ -1,0 +1,144 @@
+// ==UserScript==
+// @name         xchina - behaviour - fuck pagination
+// @namespace    http://tampermonkey.net/
+// @version      0.1
+// @description  try to take over the world!
+// @author       You
+// @match        https://xchina.pro/photo/*
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=xchina.pro
+// @grant        none
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    // Your code here...
+    let CUR_MSG_TIMEOUT_ID;
+
+    let ERRORS = "";
+    let OUTPUT_OBJ = {}; // using parallel processing, this is used to keep the indexes (for the pages), so then another loop to put everything in order
+
+    let PAGINATION_LINKS_SELECTOR = `.pager:first-child a:not([class])`;
+    let PHOTOS_SELECTOR = `.photos > a img`;
+
+    let GALLERY_ID;
+
+    run();
+    async function run()
+    {
+        GALLERY_ID = window.location.href.split("id-")[1].split("/")[0].split(".html")[0];
+        let baseLink = "https://xchina.pro/photo/id-" + GALLERY_ID;
+
+        let lastPageNum = parseInt([...document.querySelectorAll(PAGINATION_LINKS_SELECTOR)].pop().innerText);
+
+        let antiConjestionCounter = 0; // prevents making too many simintanois requests - aka for ex. not wating on 200 iamges at once
+        let antiConjestionLimit = 10;
+        let promises = [];
+
+        for (let i=1; i<=lastPageNum; i++) {
+            OUTPUT_OBJ[i] = "";
+
+            if (antiConjestionCounter == antiConjestionLimit) {
+                antiConjestionCounter = 0;
+                display_msg(`Waiting for the most recent ${antiConjestionLimit} pages to fetch`);
+                await Promise.all(promises);
+            }
+
+            promises.push(fetch_photos_from_page(`${baseLink}/${i}.html`, i));
+            antiConjestionCounter += 1;
+            display_msg(`Started page ${i}`);
+            await delay(100); // wait before you add the new promise since some sites don't support going too fast
+        }
+
+        await Promise.all(promises);
+
+        let newPhotosInnerHtml = "";
+
+        for (let i=1; i<=lastPageNum; i++) {
+            newPhotosInnerHtml += OUTPUT_OBJ[i];
+        }
+
+        document.querySelector(".photos").innerHTML = newPhotosInnerHtml;
+        if (ERRORS) {
+            ERRORS = "ERRORS:\n\n" + ERRORS.trim();
+            alert(ERRORS);
+        }
+    }
+
+    async function fetch_photos_from_page(pageLink, pageNum)
+    {
+        let pageDom = await fetch_html_data(pageLink, PHOTOS_SELECTOR);
+        if (!pageDom) {
+            ERRORS += pageNum + "\n";
+            return;
+        }
+
+        for (let imgElem of pageDom.querySelectorAll(PHOTOS_SELECTOR)) {
+            let imgLinkElem = imgElem.closest("a");
+            let imgNum = parseInt(imgLinkElem.href.split("&index=")[1].split("&")[0]) + 1;
+            let newHref = `https://img.xchina.biz/photos/${GALLERY_ID}/${img_num_adjuster(imgNum)}.jpg`;
+            imgLinkElem.href = newHref;
+            OUTPUT_OBJ[pageNum] += imgElem.closest("a").outerHTML;
+        }
+    }
+
+    // in the new href the image number has to be 4 digits, so add 0s
+    function img_num_adjuster(imgNum)
+    {
+        imgNum = `${imgNum}`;
+        let numDigitsReq = 4 - imgNum.length;
+        for (let i=1; i<=numDigitsReq; i++) {
+            imgNum = "0" + imgNum;
+        }
+        return imgNum;
+    }
+
+
+    function html_to_node(code)
+    {
+        let tempWrapper = document.createElement("div");
+        tempWrapper.innerHTML = code;
+        if (tempWrapper.childElementCount == 1) tempWrapper = tempWrapper.firstChild;
+        return tempWrapper;
+    }
+
+    // Some sites like hqnp will return a page BUT something like "You're magic is wating...". So you need to keep making requests until it returns the right page.
+    async function fetch_html_data(url, selectorToTest)
+    {
+        let attempts = 0;
+        while (attempts < 20) {
+            try {
+                let response = await fetch(url, {method: 'get', credentials: 'include'});
+                let htmlString = await response.text();
+                let parser = new DOMParser();
+                let pageDom = parser.parseFromString(htmlString, "text/html");
+                pageDom.querySelector(selectorToTest).getAttribute("test");
+                return pageDom;
+            }
+            catch(err) {
+                await delay(100);
+            }
+
+            attempts += 1;
+        }
+        return false;
+    }
+
+    function delay(durationMs)
+    {
+        return new Promise(resolve => setTimeout(resolve, durationMs));
+    }
+
+    function display_msg(text)
+    {
+        rm_msg();
+        document.querySelector(`html`).appendChild(html_to_node(`<p id="custMsg" style="position:fixed; top:0; left: 50%; font-size:1rem; padding:10px; width:max-content; z-index: 99999999; background:green; color:white;">${text}</p>`));
+        CUR_MSG_TIMEOUT_ID = setTimeout(rm_msg, 3000);
+
+        function rm_msg()
+        {
+            try {document.querySelector(`#custMsg`).remove()} catch(err) {}
+            try {clearTimeout(CUR_MSG_TIMEOUT_ID)} catch(err) {}
+        }
+    }
+})();

@@ -27,6 +27,8 @@
     - "condense posts" condences large posts so that you don't have load a billion images and wait for a long time. Very useful.
     - "thenude search addon" is an addon for thenude's VG and VGE buttons work in the previous script discussed
     - "hide non-photo results" hides non-photo search results as the title suggests
+  - xchina - behaviour - fuck pagination
+    - the galleries on that site have pages and only about 15 items per page - this scripts puts it all on the same page (also required for getting the links)
   
 ---
   
