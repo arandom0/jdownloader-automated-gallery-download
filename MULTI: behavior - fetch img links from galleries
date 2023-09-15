@@ -108,7 +108,7 @@
             PAGINATION_LINKS_SELECTOR = `a[class^="link3"]`;
         }
         else if (URL_OBJ.host.includes("kitty-kats.net") || URL_OBJ.host.includes("indexxx.to")) {
-            GALLERY_IMGS_SELECTOR = ".message-userContent img";
+            GALLERY_IMGS_SELECTOR = ".message-userContent .bbImage";
         }
         else if (URL_OBJ.host.includes("eropics.to")) {
             GALLERY_IMGS_SELECTOR = ".entry-content img";
@@ -135,7 +135,7 @@
             GALLERY_IMGS_SELECTOR = `a[id^="pic"] img`;
         }
         else if (URL_OBJ.host.includes("adultphotosets.best")) {
-            GALLERY_IMGS_SELECTOR = `article[class="box story fullstory"] img`;
+            GALLERY_IMGS_SELECTOR = `article[class*="fullstory"] img`;
         }
         else if (URL_OBJ.host.includes("girlsreleased.com")) {
             GALLERY_IMGS_SELECTOR = `#set_list .setthumbs img`;
@@ -253,11 +253,6 @@
                 .genericCustMsg {background:blue; color:white;}
                 .successCustMsg {background:green; color:white;}
                 .errorCustMsg {background:red; color:white;}
-
-                #outputBlock {background:black; position:fixed; top:0; left:0; border: 2px solid; width:1000px; height: 700px; overflow: scroll;}
-                #outputBlock textarea, #outputBlock input {width:900px; border:2px solid; border-color:red; background:black;}
-                #outputBlock textarea {height:250px;}
-                #outputBlock button {font-size:1.2rem;}
             </style>`;
         document.querySelector(`html`).appendChild(html_to_node(styleHtml));
 
@@ -497,7 +492,9 @@
             return imgElem.src;
         }
         else {
-            return imgElem.closest("a").href;
+            let linkElem = imgElem.closest("a");
+            if (linkElem) return linkElem.href;
+            else return false;
         }
     }
 
@@ -533,21 +530,26 @@
 
     async function save_as_crawljob_file()
     {
+        let outputStr = OUTPUT.join("<br>");
+
         let outputObj =
             [
                 {
                     //forcedStart: "TRUE",
                     //autoConfirm: "TRUE",
-                    text: OUTPUT.join("<br>"),
+                    text: outputStr,
                     packageName: SET_NAME
                 }
             ];
 
         let base64Encoded = utf8ToBase64(JSON.stringify(outputObj));
 
+        let containsImxLinks = (outputStr.includes("imx")) ? true : false; // much slower to download
+        let fileName = (containsImxLinks) ? `${SET_NAME}.crawljob` : `(not imx) ${SET_NAME}.crawljob`
+
         GM_download({
             url:`data:text/plain;base64,${base64Encoded}`,
-            name:`${SET_NAME}.crawljob`,
+            name:fileName,
             saveAs:false,
             onerror:()=>{display_msg(`FAILED SAVING FILE`, "errorCustMsg"); return false;},
             onload:()=>{display_msg(`FILE SAVED with ${OUTPUT.length} links`, "successCustMsg")}
@@ -571,16 +573,46 @@
     function display_output()
     {
         let html =
-            `<div id="outputBlock">
-                <p><button id="removeOutput">REMOVE OUTPUT</button></p>
-                <p>SET NAME</p>
-                <p><input type="text" id="setname" readonly/></p>
-                <p><button id="copySetNameBtn">CLICK TO COPY SET NAME</button></p>
-                <p>OUTPUT (${OUTPUT.length} links):</p>
-                <p><textarea id="out" readonly></textarea></p>
-                <p><button id="copyLinksBtn">CLICK TO COPY LINKS</button></p>
-                <p>ERRORS:</p>
-                <p><textarea id="err" readonly></textarea></p>
+            `<div id="outputBlock" style="position:fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width:auto; height: auto; max-height: 750px; overflow: scroll; background:black; border: 5px dotted gray;">
+
+                <div id="windowDecoration" style="display:block; background: rgb(62, 62, 62); overflow: hidden; color: white;">
+                    <div class="leftSide" style="float: left; padding-left: 10px;">
+                        Output shown due to errors
+                    </div>
+                    <div class="rightSide" style="float: right; padding-left: 10px;">
+                        <div id="rightSideButtonsContainer" style="display: flex;">
+                            <!--<button id="minimizeOutput" style="background: #9f722d;">_</button>-->
+                            <!--<button id="toggleFullscreenOutput" style="background: #3d4a90;">▢</button>-->
+                            <button id="removeOutput" style="background: red;">X</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="setNameInfo" class="infoBlock" style="color: #2a379f;">
+                    <p>SET NAME</p>
+                    <p><input type="text" id="setname" style="border-color: #2a379f;" readonly/></p>
+                    <p><button id="copySetNameBtn" style="background: #2a379f;">Copy</button></p>
+                </div>
+
+                <div id="outputInfo" class="infoBlock" style="color: #056905;">
+                    <p>OUTPUT (${OUTPUT.length} links):</p>
+                    <p><textarea id="out" style="border-color: #056905;" readonly></textarea></p>
+                    <p><button id="copyLinksBtn" style="background: #056905;">Copy</button></p>
+                </div>
+
+                <div id="errorsInfo" class="infoBlock" style="color:#a91a1a;">
+                    <p>ERRORS:</p>
+                    <p><textarea id="err" style="border-color:#a91a1a;" readonly></textarea></p>
+                </div>
+
+                <style>
+                    #outputBlock textarea, #outputBlock input {width:500px; border:2px solid; background:rgb(20, 20, 20); color: white; box-sizing: border-box;}
+                    #outputBlock textarea {height:200px;}
+                    #outputBlock button {border: none; padding: 2px; cursor: pointer;}
+                    #outputBlock #windowDecoration button {padding: 2px 10px; color: white; display: flex; flex-grow: 1; align-items: center; justify-content: center;}
+                    #outputBlock .infoBlock {margin-bottom: 10px; padding: 10px;}
+                    #outputBlock .infoBlock:last-child {margin-bottom: 0px;}
+                </style>
             </div>`;
 
         document.querySelector("html").appendChild(html_to_node(html));

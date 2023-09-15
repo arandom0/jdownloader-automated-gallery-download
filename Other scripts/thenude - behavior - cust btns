@@ -15,129 +15,141 @@
     // For the NP button to work, you need to register at https://hqnp.org/member.php?action=register and login
     // It's a very useful site
 
-    let SET_SELECTOR = `#covers div[data-cover-id]`;
-    let ALL_SET_ELEMS = $$(SET_SELECTOR);
+    let CUR_MSG_TIMEOUT_ID;
 
     init();
     function init()
     {
-        if (ALL_SET_ELEMS.length == 0) return;
+        let allSetElems = document.querySelectorAll(`#covers div[data-cover-id]`);
+        let modelLinksElem = document.querySelector(".model-model-links");
+        if (allSetElems.length == 0 && !modelLinksElem) return;
 
+        // Add style
         let styleHtml =
             `<style>
                 .custLink, .custCopyBtn {display: inline-block; padding: 5px; margin-bottom: 6px; font-weight: bold; text-transform: uppercase; border: 1px solid; border-color: rgb(196, 152, 107);}
                 .custLink {background: #132617;}
-                .custCopyBtn {background: #53030f;}
-                .custTextBlock {border: 2px solid;}
+                .custCopyBtn {background: #53030f; width: 100%;}
             </style`;
-        $("html").appendChild(htmlToNode(styleHtml));
+        document.querySelector("html").appendChild(html_to_node(styleHtml));
 
-        $$(`.pagination li a`).forEach(e => e.removeAttribute("onclick")); // this way, when you click on a page, the site reloads
+        // Reload site when clicking on page (so that the buttons are generated for the new sets displayed)
+        document.querySelectorAll(`.pagination li a`).forEach(e => e.removeAttribute("onclick"));
 
-        $("body").addEventListener("click", click_handler);
-        add_btns();
-    }
+        // Add the buttons
+        if (allSetElems.length > 0) {
+            for (let setElem of allSetElems)
+            {
+                try { // removes the annoying thing when a set has been "deleted'
+                    setElem.querySelector(".thumbnail").classList.remove("withdrawn");
+                    setElem.querySelector(".withdrawn-txt").remove();
+                } catch(err) {}
 
-    function click_handler(event)
-    {
-        let elem = event.target;
-        if (elem.classList.contains("custCopyBtn")) GM_setClipboard(elem.getAttribute("texttocopy"), "text");
+                let setInfoArr = getSetInfoArr(setElem);
+
+                let htmlToAppend =
+                    `<a class="custLink" href="https://vipergirls.to/search.php?search_type=1#searchtext=${encodeURIComponent(setInfoArr.slice(1, -2).join(" "))}#titlesonly" target="_blank" title="ViperGirls (titles only)">Vge</a>
+                <a class="custLink" href="https://vipergirls.to/search.php?search_type=1#searchtext=${encodeURIComponent(setInfoArr.slice(1, -2).join(" "))}" target="_blank" title="ViperGirls (whole posts)">Vg</a>
+                <a class="custLink" href="https://yandex.com/search/?text=${encodeURIComponent("site:vipergirls.to " + setInfoArr.slice(0, -2).join(" "))}" target="_blank" title="ViperGirls (Yandex)">Vgy</a>
+                <a class="custLink" href="https://vip.hqnp.org/search/${encodeURIComponent(hqnp_title_shortener(setInfoArr.slice(1, -2).join(" ").replaceAll("&", "")))}/index.html" target="_blank" title="HQNP">Np</a>
+                <a class="custLink" href="https://kitty-kats.net/search/?q=${encodeURIComponent(setInfoArr.slice(1, -2).join(" "))}&c[title_only]=1&o=date" target="_blank" title="KittyKats">Kk</a>
+                <a class="custLink" href="https://yandex.com/search/?text=${encodeURIComponent("site:adultphotosets.best " + setInfoArr.slice(0, -2).join(" "))}" target="_blank" title="adultphotosets">AP</a>
+                <a class="custLink" href="https://yandex.com/search/?text=${encodeURIComponent("site:imx.to " + setInfoArr.slice(0, -2).join(" "))}" target="_blank" title="imx">IMX</a>
+                <a class="custLink" href="https://yandex.com/search/?text=${encodeURIComponent("site:xfobo.com " + setInfoArr.slice(0, -2).join(" "))}" target="_blank" title="xfobo">XF</a>
+                <a class="custLink" href="https://yandex.com/search/?text=${encodeURIComponent(setInfoArr.slice(0, -1).join(" "))}" target="_blank" title="Yandex">Y</a>
+                <a class="custLink" href="https://www.bing.com/search?q=${encodeURIComponent(setInfoArr.join(" "))}" target="_blank" title="Bing">B</a>
+                <a class="custLink" href="https://www.google.ca/search?q=${encodeURIComponent(setInfoArr.join(" "))}" target="_blank" title="Google">G</a>
+                <button class="custCopyBtn" texttocopy="${setInfoArr[0] + " " + setInfoArr[1] + " - " + setInfoArr[2]}">Copy Set Name</button>`;
+
+                setElem.querySelector(`figure[class="figure gall-img"]`).appendChild(html_to_node(htmlToAppend));
+            }
+
+            document.querySelector("body").addEventListener("click", click_handler);
+        }
+
+        if (modelLinksElem) {
+            // populate with all the names
+            let modelNamesArr = [];
+            for (let studioAndName of modelLinksElem.innerText.split("\n")) {
+                // get just the name
+                let match = /\(([^)]+)\)/.exec(studioAndName);
+                if (match) modelNamesArr.push(match[1]);
+            }
+
+            // remove duplicates and add html
+            modelNamesArr = [...new Set(modelNamesArr)];
+            if (modelNamesArr.length > 0) modelLinksElem.parentElement.appendChild(html_to_node(`<br><hr><br><h2 style="color: aquamarine;">Find sets that may not be listed on this site.<br>Search each name the girl is known as both in ViperGirls and HQNP.<br>Especially useful with girls who've done porn and have unique names.</h2>`));
+            for (let uniqueName of modelNamesArr) {
+                let btnHtml = `<p><a class="custLink" href="https://vipergirls.to/search.php?search_type=1#searchtext=${encodeURIComponent(uniqueName)}#titlesonly" target="_blank" title="ViperGirls (titles only)">${uniqueName} - Vge</a>`;
+                btnHtml += `<a class="custLink" href="https://vip.hqnp.org/search/${encodeURIComponent(uniqueName)}/index.html" target="_blank" title="HQNP">${uniqueName} - NP</a></p>`;
+                modelLinksElem.parentElement.appendChild(html_to_node(btnHtml));
+            }
+        }
     }
 
     /* ########################################################### */
 
-    function add_btns()
+    function click_handler(event)
     {
-        for (let setElem of ALL_SET_ELEMS)
-        {
-            // removes the annoying thing when a set has been "deleted'
-            try{setElem.querySelector(".withdrawn-txt").remove()} catch(err) {}
+        let elem = event.target;
+        if (!elem.classList.contains("custCopyBtn")) return;
 
-            let setInfoObj = getSetInfoObj(setElem);
-
-            let modelSet = `${setInfoObj.modelAs} - ${setInfoObj.setName}`;
-            let studioModelSet = `${setInfoObj.studio} ${modelSet}`;
-            let studioModelSetYear = `${studioModelSet} ${setInfoObj.year}`;
-            let studioModelSetYearQty = `${studioModelSetYear} x${setInfoObj.numImgs}`;
-
-            let bingSearchHref = `https://www.bing.com/search?q=${rawTextToUrlQueryText(studioModelSetYearQty)}`;
-            //let gibiruSearchHref = `https://gibiru.com/results.html?q=${rawTextToUrlQueryText(studioModelSetYear)}`;
-            let googleSearchHref = `https://www.google.ca/search?q=${rawTextToUrlQueryText(studioModelSetYearQty)}`;
-            let yandexSearchHref = `https://yandex.com/search/?text=${rawTextToUrlQueryText(studioModelSetYear)}`;
-            //let nudeCollectSearchHref = `https://nudecollect.com/websearch/${rawTextToStandardUrlText(modelSet)}/index.html`;
-            let hqnpSearchHref = `https://vip.hqnp.org/search/${rawTextToStandardUrlText(titleShortener(ncNpRmEffedUpSymbols(modelSet), 25))}/index.html`;
-            let kittyKatsSearchHref = `https://kitty-kats.net/search/?q=${rawTextToUrlQueryText(modelSet)}&c[title_only]=1&o=date`;
-            let viperGirlsSearchHref = `https://vipergirls.to/forum.php#searchtext=${rawTextToUrlQueryText(modelSet, "%20")}`;
-
-
-            // <p class="custTextBlock">${studioModelSetYearQty}</p>
-            let htmlToAppend =
-                `<a class="custLink" href="${bingSearchHref}" target="_blank">B</a>
-                <a class="custLink" href="${googleSearchHref}" target="_blank">G</a>
-                <a class="custLink" href="${yandexSearchHref}" target="_blank">Y</a>
-                <a class="custLink" href="${hqnpSearchHref}" target="_blank">Np</a>
-                <a class="custLink" href="${kittyKatsSearchHref}" target="_blank">Kk</a>
-                <a class="custLink" href="${viperGirlsSearchHref}" target="_blank">Vg</a>
-                <a class="custLink" href="${viperGirlsSearchHref}#titlesonly" target="_blank">Vge</a>
-                <button class="custCopyBtn" texttocopy="${modelSet}">Copy model + set</button>
-                <button class="custCopyBtn" texttocopy="${studioModelSet}">Copy studio + model + set</button>`;
-
-            setElem.querySelector(`figure[class="figure gall-img"]`).appendChild(htmlToNode(htmlToAppend));
-        }
+        GM_setClipboard(elem.getAttribute("texttocopy"), "text");
+        display_msg(elem.getAttribute("texttocopy"));
     }
 
-    // nudecollect and hqnp don't like the & symbol for instance, and even if you search for it manually, the results are completely unaccurate
-    function ncNpRmEffedUpSymbols(str)
+    /* ########################################################### */
+
+    // returns an array, [studio, modelAs, setName, year, numImgs]
+    function getSetInfoArr(setElem)
     {
-        str = str.replaceAll("&", "");
-        str = str.replace(/[ ]+/g, " ").trim();
-        return str;
+        let modelAsStr = capitalize(setElem.querySelectorAll(".model-name")[0].innerText.replace(/^as/gi, "").trim())
+        let setNameStr = capitalize(setElem.querySelectorAll(".model-name")[1].innerText.replace(/(^in|"|s[0-9]+:e[0-9]+)/gi, "").replace(/([ ]+|:)/gi, " ").trim());
+        setNameStr = ntfs_set_title_shortener(setNameStr);
+        let numImgsStr = capitalize(setElem.querySelector(".image-amount").innerText.replace(/[a-zA-Z]+/gi, "").trim());
+        let studioStr = capitalize(setElem.querySelector(".website").innerText.trim());
+        let yearStr = capitalize(setElem.querySelector(".date").innerText.replace(/([a-zA-Z]+|[0-9]{1,2} )/gi, "").trim());
+
+        return [studioStr, modelAsStr, setNameStr, yearStr, numImgsStr];
     }
 
-    function titleShortener(str, limit)
+    function capitalize(textStr)
     {
-        if (str.length <= limit) return str;
+        return textStr.toLowerCase().replace(/(^\w|\s\w)/g, m => m.toUpperCase());
+    }
+
+    // hqnp supports search queries no longer than 25 characters and doesn't play well with short words (too many results)
+    function hqnp_title_shortener(str)
+    {
+        if (str.length <= 25) return str;
 
         let minLengthOfWord = 3;
 
         let newStr = ""
         for (let word of str.split(" ")) {
-            if (word.length >= minLengthOfWord && newStr.length+word.length+1 <= limit) newStr += word + " ";
+            if (word.length >= minLengthOfWord && newStr.length+word.length+1 <= 25) newStr += word + " ";
         }
 
         return newStr.trim();
     }
 
-    function getSetInfoObj(setElem)
+    // 255 is the max number of characters for filenames in NTFS drives
+    // the limit should be 240 - the length of studio + model name
+    // 230 because with jdownload rename rule, "- 1.jpg" is added, and leaving a few extra
+    function ntfs_set_title_shortener(str, limit)
     {
-        let modelAsStr = capitalize(extractInfoFromElem($$of(setElem, ".model-name")[0], "", `^as`));
-        let setNameStr = capitalize(extractInfoFromElem($$of(setElem, ".model-name")[1], "", `(^in|"|')`));
-        let numImgsStr = extractInfoFromElem($of(setElem, ".image-amount"), "", `images`);
-        let studioStr = capitalize(extractInfoFromElem($of(setElem, ".website"), ""));
-        let yearStr = extractInfoFromElem($of(setElem, ".date"), "", `([a-zA-Z]+|[0-9]{2} |[0-9]{1} )`);
-        return {modelAs: modelAsStr, setName: setNameStr, numImgs: numImgsStr, studio: studioStr, year: yearStr};
+        if (str.length <= limit) return str;
+
+        let newStr = ""
+        for (let word of str.split(" ")) {
+            if (newStr.length+word.length+1 <= limit) break;
+            newStr += word + " ";
+        }
+
+        return newStr.trim();
     }
 
-    function extractInfoFromElem(elem, altvalue, removeFromStrRegexStr)
-    {
-        if (!elem) return altvalue;
-        let fullTextValueOfElem = elem.innerText.trim();
-        if (!fullTextValueOfElem) return altvalue;
-        if (!removeFromStrRegexStr) return fullTextValueOfElem;
-        let regex = new RegExp(removeFromStrRegexStr, "g"); // this adds //g
-        let extractedText = fullTextValueOfElem.replace(regex, "").trim();
-        return extractedText;
-    }
-
-    /* ########################################################### */
-
-    function $ (cssQuery) {return document.querySelector(cssQuery)}
-    function $of (elem, cssQuery) {try {return elem.querySelector(cssQuery)} catch(err) {return null}}
-
-    function $$ (cssQuery) {return [...document.querySelectorAll(cssQuery)];}
-    function $$of (elem, cssQuery) {try {return [...elem.querySelectorAll(cssQuery)]} catch (err) {return []}}
-
-    function htmlToNode(code)
+    function html_to_node(code)
     {
         let tempWrapper = document.createElement("div");
         tempWrapper.innerHTML = code;
@@ -145,24 +157,16 @@
         return tempWrapper;
     }
 
-    function capitalize(textStr) {return textStr.toLowerCase().replace(/(^\w|\s\w)/g, m => m.toUpperCase());}
-
-    // some sites use + for white space, others use %20
-    function rawTextToUrlQueryText(str, whiteSpaceSymbol="+")
+    function display_msg(text)
     {
-        str = str.split("+").join("%2B"); // first we replace some of the chars in base text that need conversion in the url text
-        str = str.split("&").join("%26");
-        str = str.split("?").join("%3F");
-        str = str.split("#").join("%23");
-        str = str.split(" ").join(whiteSpaceSymbol); // lastly, we replace the white spaces with the + sign
-        return str;
-    }
+        rm_msg();
+        document.querySelector(`html`).appendChild(html_to_node(`<p id="custMsg" style="position:fixed; top:0; left: 50%; font-size:1rem; padding:10px; width:max-content; z-index: 99999999; background:green; color:white;">${text}</p>`));
+        CUR_MSG_TIMEOUT_ID = setTimeout(rm_msg, 2000);
 
-    function rawTextToStandardUrlText(str)
-    {
-        str = str.split(" ").join("_");
-        str = str.split("/").join(""); // illegal char
-        str = str.split("#").join(""); // illegal char
-        return str;
+        function rm_msg()
+        {
+            try {document.querySelector(`#custMsg`).remove()} catch(err) {}
+            try {clearTimeout(CUR_MSG_TIMEOUT_ID)} catch(err) {}
+        }
     }
 })();

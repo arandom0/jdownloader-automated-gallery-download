@@ -30,6 +30,9 @@
             #covers div[data-cover-id] figcaption {padding: 5px;}
             /* Hide photographer */
             #covers div[data-cover-id] div[class="model-name"][itemprop="author"] {display: none;}
+
+            /* Search results */
+            #searchResults .col-xxs-6.col-xs-4.col-md-3 {padding: 0px; border: 1px solid; width: 50% !important; font-size: 19px;}
         </style`;
     document.querySelector("html").appendChild(htmlToNode(STYLE_HTML));
 

@@ -20,6 +20,7 @@
 
     let PAGINATION_LINKS_SELECTOR = `.pager:first-child a:not([class])`;
     let PHOTOS_SELECTOR = `.photos > a img`;
+    let FULL_IMG_SELECTOR = `.container img`;
 
     let GALLERY_ID;
 
@@ -75,9 +76,15 @@
 
         for (let imgElem of pageDom.querySelectorAll(PHOTOS_SELECTOR)) {
             let imgLinkElem = imgElem.closest("a");
-            let imgNum = parseInt(imgLinkElem.href.split("&index=")[1].split("&")[0]) + 1;
-            let newHref = `https://img.xchina.biz/photos/${GALLERY_ID}/${img_num_adjuster(imgNum)}.jpg`;
-            imgLinkElem.href = newHref;
+
+            let origImgHref = imgLinkElem.href;
+            let imgPageDom = await fetch_html_data(origImgHref, FULL_IMG_SELECTOR);
+            if (!imgPageDom) {
+                ERRORS += origImgHref + "\n";
+                continue;
+            }
+
+            imgLinkElem.href = imgPageDom.querySelector(FULL_IMG_SELECTOR).src;
             OUTPUT_OBJ[pageNum] += imgElem.closest("a").outerHTML;
         }
     }
